@@ -1,0 +1,74 @@
+{
+  "summary": "First testing iteration. Validated backend auth + super-admin endpoints (pytest, 6/6 passing) and the NEW luxury frontend (LandingPage, AdminLogin, SuperAdminLogin) via Playwright (16/16 UI checks passing). Backend health, super-admin JWT login, list-admins (200 with token, 403 without), and wrong-password 401 all work. Frontend luxury design renders: Maharani.studio brand, 'Cinematic invitations worthy of your artistry.' hero, 10 theme cards, 4 plan cards (FREE/SILVER/GOLD/PLATINUM), photographer-login navigation, invalid-creds error, super-admin login flow successfully reaches /super-admin/dashboard. However discovered ONE real backend bug: GET /api/auth/me crashes with HTTP 500 for the seeded super admin due to a Pydantic ValidationError on missing 'available_credits' field, and one minor frontend role-routing bug in AdminLogin.jsx (tries to JSON.parse a raw JWT string).",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "GET /api/auth/me",
+        "issue": "Returns 500 for the super_admin user. Pydantic ValidationError: 'available_credits Field required' in AdminResponse(**admin) at server.py:630. The seeded super_admin document in admin_users does not have the available_credits field (login endpoint hard-codes 999999 in its response, but the DB record is missing it). Side-effect in UI: AuthContext.fetchAdminInfo() fails after every page refresh / token-rehydrate, which then calls logout() — meaning a refreshed Super Admin Dashboard kicks the user out unless they re-login.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "GET /api/super-admin/admins (from frontend)",
+        "issue": "Browser fetch returned 403 on Super Admin Dashboard mount even though pytest with same token returns 200. Likely cause: dashboard component calls axios before AuthContext useEffect sets axios.defaults.headers.common['Authorization'] on token rehydrate (race). Compounded by the /api/auth/me 500 above. Backend itself is fine."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "AdminLogin.jsx (handleSubmit role-routing)",
+        "issue": "Code does `JSON.parse(localStorage.getItem('admin_token') || '{}')` to read role, but admin_token is stored as a raw JWT string in AuthContext (localStorage.setItem('admin_token', access_token)). JSON.parse throws, the try/catch swallows it, and a super_admin who logs in via /admin/login is always routed to /admin/dashboard instead of /super-admin/dashboard. Should read role from the `admin` returned by login (or decode JWT) — e.g., expose `admin` from useAuth() and check admin.role.",
+        "selector": "[data-testid=admin-login-submit]",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Super Admin Dashboard initial load after login",
+        "issue": "Dashboard shows '0 total admins' and empty table because /api/super-admin/admins responds 403 in the browser (race with axios auth header on first mount) and /api/auth/me 500s. Two pre-existing components are coupled to a buggy backend response.",
+        "affected_selectors": []
+      }
+    ],
+    "design_issues": [
+      {
+        "screen": "Super Admin Dashboard (/super-admin/dashboard)",
+        "issues": [
+          "Visual design mismatch — the new luxury dark theme (Royal Heritage palette) is applied to Landing / AdminLogin / SuperAdminLogin, but the dashboard is still the original light/white pre-existing UI with a red Logout button and a purple Create Admin button. Looks jarring after the cinematic login. Owner may want to re-skin it next."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_auth_and_super_admin.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Fix backend GET /api/auth/me: in server.py:get_current_admin_info, ensure the admin dict has available_credits before constructing AdminResponse. Either default it (admin.setdefault('available_credits', 999999 if super_admin else 0)) or make the field Optional with a default in AdminResponse, OR backfill the seeded super_admin document in init_super_admin.py to include available_credits.",
+    "Fix AdminLogin.jsx role check: don't JSON.parse the raw JWT in localStorage. Pull `admin` from `useAuth()` (already returned by login) and route on admin.role === 'super_admin'. Currently super-admins logging in via /admin/login land on /admin/dashboard.",
+    "Optionally re-skin Super Admin Dashboard to match the new luxury design system.",
+    "Investigate the 403 race on the dashboard's /api/super-admin/admins fetch — likely a one-time effect dependency on token/axios header readiness."
+  ],
+  "critical_code_review_comments": [
+    "server.py is a single very large file — splitting it into routers (auth, super_admin, credits, weddings) would significantly improve maintainability.",
+    "AdminResponse model is missing a default for available_credits OR backend should always provide it. The current shape silently breaks /api/auth/me for any admin record that pre-dates the field.",
+    "AuthContext.login() exposes `admin` to the provider but AdminLogin.jsx doesn't use it — instead it tries to parse the JWT from localStorage. Use the provider value.",
+    "security_middleware blocking 'curl/' / headless UAs is fine for prod but please document it (already noted) — testers MUST send a browser User-Agent header.",
+    "luxury.css is loaded inside JSX components via `import '../styles/luxury.css'` — keep, but consider moving to index.css to avoid re-runs on route change."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_auth_and_super_admin.py (new file)",
+    "/app/test_reports/pytest/pytest_results.xml (new file)"
+  ],
+  "success_rate": {
+    "backend": "100% (6/6 pytest), but 1 untested endpoint /api/auth/me independently confirmed to 500",
+    "frontend": "100% (16/16 Playwright assertions for landing, admin login, super-admin login + dashboard nav)"
+  },
+  "test_credentials": "Super Admin: superadmin@wedding.com / SuperAdmin@123 (from /app/memory/test_credentials.md). No photographer admin seeded.",
+  "seed_data_creation": "None.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend pytest file is at /app/backend/tests/test_auth_and_super_admin.py — reuse it. All requests MUST send a browser-like User-Agent or the security_middleware returns 403. Login response shape is { access_token, token_type, admin: { id, email, name, role, status, available_credits } }. Super Admin Dashboard component is the OLD light-theme UI — not part of the new luxury redesign. Two real bugs to retest after main agent fixes: (a) /api/auth/me 500 missing available_credits, (b) AdminLogin role routing using bad JSON.parse of JWT.",
+  "rca of the issue": "GET /api/auth/me 500: The seeded super_admin record stored by init_super_admin.py does not include `available_credits`, but AdminResponse requires it (no default). The /api/auth/login handler builds its own response dict and hard-codes available_credits=999999 for super_admin, so it works; /api/auth/me however does `AdminResponse(**admin)` directly on the DB doc — which now throws. Reproduction: POST /api/auth/login → take access_token → GET /api/auth/me with Bearer → 500. Mitigation: (1) Add `available_credits: int = 0` (Optional default) in the AdminResponse Pydantic model, OR (2) in get_current_admin_info, do `admin.setdefault('available_credits', 999999 if admin.get('role') == 'super_admin' else 0)` before constructing AdminResponse, OR (3) backfill the DB doc."
+}

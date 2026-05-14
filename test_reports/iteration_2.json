@@ -1,0 +1,66 @@
+{
+  "summary": "Iteration 2: validated Sprint 2/3/4 luxury features. Backend pytest 12/13 passing. Frontend Playwright all critical luxury flows pass: photographer login -> LuxuryDashboard renders with every required data-testid (luxury-dashboard, dashboard-credits, stat-credits/published/drafts/themes, dashboard-search, dashboard-create-wedding, dashboard-ai-story-btn, dashboard-audit-logs); AI Story Composer modal opens, fields fill, generate produces real Claude Sonnet 4.5 prose (559 chars) in <30s; /preview/luxe wax-seal envelope shows, CTA reveals content, trigger-petals renders petal-confetti, ambient-music-player gold pill toggles without JS error. Backend ai_story_logs collection grows on each successful generation (persistence verified). Two issues found (both backend): (1) HIGH — GET /api/auth/me returns available_credits=0 for the photographer admin even though DB has total_credits=200/used_credits=0 (UI dashboard-credits also shows 0). The server.py:631 fix uses setdefault on a missing key, but should always recompute from total_credits-used_credits. (2) INTERMITTENT — EMERGENT_LLM_KEY hit 'Budget has been exceeded! Current cost: 0.002793, Max budget: 0.001' once during the first pytest run, then succeeded immediately on retry. Suggests very low per-window budget on this key; user-facing impact is occasional 502 on /api/admin/ai/story. Previous iteration_1 bugs (auth/me 500, AdminLogin JSON.parse) are FIXED.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "GET /api/auth/me",
+        "issue": "Returns available_credits=0 for photographer studio@maharani.com whose DB doc has total_credits=200, used_credits=0. Root cause: server.py line 631 uses admin.setdefault('available_credits', 0 if not super_admin else 999999). The seeded admin record has no `available_credits` key (it is supposed to be derived), so setdefault writes 0 instead of computing total_credits - used_credits like the /auth/login handler does (server.py:617). Side effect: LuxuryDashboard 'dashboard-credits' tile shows 0 instead of 200, breaking the credit display promise for every photographer.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "POST /api/admin/ai/story",
+        "issue": "Returned 502 with 'litellm.BadRequestError: OpenAIException - Budget has been exceeded! Current cost: 0.002793, Max budget: 0.001' on one of two runs. Retry succeeded. The EMERGENT_LLM_KEY appears to have an extremely low budget ceiling (~$0.001) for this account/key. Users will hit intermittent 502s once a few stories are generated. Recommend top-up / new key, plus a graceful UI error so the modal shows 'AI is temporarily unavailable' rather than a raw 502."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "LuxuryDashboard credits display",
+        "issue": "[data-testid=dashboard-credits] renders '0' because /api/auth/me returns 0 — the AI Story Composer button still works but the headline credit number is wrong for every photographer until the backend bug above is fixed.",
+        "affected_selectors": ["[data-testid='dashboard-credits']", "[data-testid='stat-credits']"]
+      }
+    ],
+    "design_issues": [
+      {
+        "screen": "/preview/luxe console",
+        "issues": ["One 403 console error on a resource fetch (does not affect functionality — wax-seal/petals/music all render). Possibly an asset 403 from security_middleware."]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_ai_story.py",
+    "/app/backend/tests/test_auth_and_super_admin.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Fix server.py:631 GET /api/auth/me: replace setdefault with explicit computation so available_credits is ALWAYS total_credits - used_credits (for super_admin keep 999999 since total_credits=999999 already gives that). Example: admin['available_credits'] = admin.get('total_credits', 0) - admin.get('used_credits', 0)",
+    "Verify Emergent LLM key budget — currently capped at ~$0.001 per the litellm error. Either increase the budget on the key or top up. Otherwise /api/admin/ai/story will start 502'ing for users within a handful of stories.",
+    "(Nice-to-have) Surface AI 502 errors gracefully in AIStoryComposer.jsx — show 'AI service is busy, please try again' instead of leaving the user in limbo.",
+    "(Nice-to-have) Investigate the 403 resource fetch on /preview/luxe (check security_middleware allow-list for static assets the new luxury page references)."
+  ],
+  "critical_code_review_comments": [
+    "server.py is 11772 lines — actively painful to maintain. Split into routers (auth, super_admin, credits, weddings, ai_story).",
+    "AdminResponse model still has no default for available_credits, forcing a backfill-on-read pattern that just produced the iteration-2 bug. Make the field Optional[int] = 0 OR remove it from AdminResponse and compute on the fly in the response builder.",
+    "EMERGENT_LLM_KEY is wrapped in quotes in /app/backend/.env (EMERGENT_LLM_KEY=\"sk-emergent-...\"). FastAPI/python-dotenv strips them so it works, but stylistically inconsistent — other keys are unquoted.",
+    "ai_story endpoint logs an admin_id in db.ai_story_logs but never indexes (admin_id, created_at) — fine at MVP scale, add an index before scaling.",
+    "AIStoryComposer modal has no visible loading state nor error UI tied to the 502 path — every failure looks like a silent freeze."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_ai_story.py (new)",
+    "/app/test_reports/pytest/pytest_results.xml (regenerated)"
+  ],
+  "success_rate": {
+    "backend": "92% (12/13 pytest, 1 known failure = the auth/me available_credits bug)",
+    "frontend": "100% (LuxuryDashboard, AI Story Composer end-to-end, /preview/luxe wax-seal/petals/music all pass)"
+  },
+  "test_credentials": "Super Admin: superadmin@wedding.com / SuperAdmin@123. Photographer: studio@maharani.com / Studio@123 (already seeded with total_credits=200, used_credits=0).",
+  "seed_data_creation": "None new. Each pytest run creates one TEST_admin_<uuid>@example.com photographer via the super-admin create endpoint — these are NOT cleaned up. Suggest a teardown fixture next iteration.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend tests live at /app/backend/tests/test_ai_story.py and test_auth_and_super_admin.py — keep using them. REACT_APP_BACKEND_URL is https://wedding-hub-78.preview.emergentagent.com (NOT the b16821... URL mentioned in the review request — that one is stale). Always send a browser User-Agent header (Mozilla/5.0) — security_middleware otherwise 403s. The /api/admin/ai/story endpoint actually works (Claude Sonnet 4.5 via emergentintegrations), but the EMERGENT_LLM_KEY budget is tiny (~$0.001) so retries are needed. After main agent fixes the auth/me available_credits computation, only that one pytest assertion needs re-running.",
+  "rca_of_the_issue": "Bug: /api/auth/me returns available_credits=0 for a photographer with 200 credits. Reproduction: (1) login as studio@maharani.com / Studio@123; (2) GET /api/auth/me with the bearer; (3) observe data.available_credits == 0. Expected: 200. Root cause: in server.py:get_current_admin_info (line 622) the code does `admin.setdefault('available_credits', 999999 if super_admin else 0)`. The admin doc in db.admins does not have an `available_credits` field — credits are stored as total_credits/used_credits and meant to be DERIVED. setdefault therefore writes the fallback 0. Fix: explicitly compute the field, e.g. `admin['available_credits'] = admin.get('total_credits', 0) - admin.get('used_credits', 0)` BEFORE constructing AdminResponse. That keeps super_admin correct too (total_credits=999999, used_credits=0 -> 999999). Side effect of fix: LuxuryDashboard `dashboard-credits` and `stat-credits` will both correctly read 200."
+}
