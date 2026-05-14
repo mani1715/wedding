@@ -869,20 +869,22 @@ async def update_admin_status(
     status: AdminStatus,
     super_admin_id: str = Depends(require_super_admin)
 ):
-    """PHASE 35: Update Admin account status - Super Admin only"""
+    """PHASE 35: Update Admin account status - Super Admin only.
+    Accepts `?status=active|suspended|inactive` as a query parameter.
+    """
     
-    # Check if admin exists
+    # Check if admin exists (use numeric codes — `status` arg shadows the fastapi.status import)
     admin = await db.admins.find_one({"id": admin_id})
     if not admin:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=404,
             detail="Admin not found"
         )
     
     # Prevent modifying Super Admin accounts
     if admin.get('role') == AdminRole.SUPER_ADMIN.value:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=403,
             detail="Cannot modify Super Admin accounts"
         )
     
