@@ -59,8 +59,9 @@ const AIStoryComposer = ({ open, onClose, onInsert, defaults = {} }) => {
     } catch (e) {
       const status = e.response?.status;
       let msg = e.response?.data?.detail || 'AI service is unreachable. Please try again.';
-      if (status === 502 || (typeof msg === 'string' && msg.toLowerCase().includes('budget'))) {
-        msg = 'Our AI muse is catching her breath — please try again in a moment.';
+      if (status === 503 || status === 502 || (typeof msg === 'string' && (msg.toLowerCase().includes('budget') || msg.toLowerCase().includes('muse')))) {
+        // Backend already produces a friendly message for 503 — show it as-is.
+        msg = typeof msg === 'string' && msg.length > 0 ? msg : 'Our AI muse is catching her breath — please try again in a moment.';
       } else if (status === 401 || status === 403) {
         msg = 'Your session has expired. Please log in again.';
       }

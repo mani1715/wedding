@@ -241,7 +241,7 @@ const LuxuryDashboard = () => {
 
         {/* Quick links footer */}
         <motion.div variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}
-          className="mt-16 lux-glass p-8 flex flex-wrap items-center justify-between gap-4">
+          className="mt-16 lux-glass p-8 flex flex-wrap items-center justify-between gap-4" data-testid="topup-footer">
           <div>
             <h3 className="font-display text-2xl mb-1" style={{ color: '#FFF8DC' }}>
               Need more credits?
@@ -250,9 +250,14 @@ const LuxuryDashboard = () => {
               Plans never expire. Top up anytime — drafts stay free.
             </p>
           </div>
-          <button onClick={() => navigate('/admin/profile/new')} className="lux-btn">
-            View Plans <ArrowUpRight className="w-4 h-4" />
-          </button>
+          <div className="flex flex-wrap gap-3">
+            <button onClick={() => navigate('/themes')} className="lux-btn lux-btn-ghost" data-testid="dashboard-browse-themes">
+              Browse Themes <Layers className="w-4 h-4" />
+            </button>
+            <button onClick={() => navigate('/admin/profile/new')} className="lux-btn" data-testid="dashboard-view-plans">
+              View Plans <ArrowUpRight className="w-4 h-4" />
+            </button>
+          </div>
         </motion.div>
       </div>
 

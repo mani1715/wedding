@@ -9,6 +9,7 @@ import LandingPage from './pages/LandingPage';
 import LuxuryPreview from './pages/LuxuryPreview';
 import LuxuryPublicInvitation from './pages/LuxuryPublicInvitation';
 import CoupleAccess from './pages/CoupleAccess';
+import ThemeShowroom from './pages/ThemeShowroom';
 
 // Photographer admin (luxury)
 import AdminLogin from './pages/AdminLogin';
@@ -48,6 +49,8 @@ function App() {
               <Routes>
                 {/* Public */}
                 <Route path="/" element={<LandingPage />} />
+                <Route path="/themes" element={<ThemeShowroom />} />
+                <Route path="/themes/:themeId" element={<ThemeShowroom />} />
                 <Route path="/preview/luxe" element={<LuxuryPreview />} />
                 <Route path="/invite/:slug" element={<LuxuryPublicInvitation />} />
                 <Route path="/invite/:slug/:eventType" element={<LuxuryPublicInvitation />} />

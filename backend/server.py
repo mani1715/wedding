@@ -11764,7 +11764,13 @@ async def ai_generate_story(req: AIStoryRequest, admin_id: str = Depends(get_cur
         raise
     except Exception as e:
         logger.error(f"AI story generation failed: {e}")
-        raise HTTPException(status_code=502, detail=f"AI service error: {str(e)[:200]}")
+        err_msg = str(e).lower()
+        if "budget" in err_msg or "exceeded" in err_msg or "quota" in err_msg or "rate" in err_msg:
+            raise HTTPException(
+                status_code=503,
+                detail="The AI muse is resting briefly. Please try again in a moment, or top up your Universal Key balance in Profile → Universal Key."
+            )
+        raise HTTPException(status_code=502, detail=f"AI service is temporarily unavailable. Please try again. ({str(e)[:120]})")
 
 
 # Alias for legacy reference: maps (slug, ip, device_id, endpoint) → (ip, device_id, endpoint, slug)
