@@ -187,8 +187,13 @@ def build_gift_router(db, get_current_admin):
         patch = payload.model_dump(exclude_none=True)
         # Re-validate suggestions to ensure ids
         if "suggestions" in patch:
+            import re as _re
+            _UUID_RE = _re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", _re.I)
             cleaned = []
             for s in patch["suggestions"]:
+                # Strip non-UUID ids (e.g. UI temp ids like tmp-1731580000) so we regenerate
+                if isinstance(s, dict) and s.get("id") and not _UUID_RE.match(str(s["id"])):
+                    s = {k: v for k, v in s.items() if k != "id"}
                 gs = GiftSuggestion(**s) if not isinstance(s, GiftSuggestion) else s
                 if not isinstance(gs, GiftSuggestion):
                     gs = GiftSuggestion(**gs)

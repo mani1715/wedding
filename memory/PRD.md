@@ -23,6 +23,37 @@ Build the premium AI-powered Indian wedding photographer SaaS from https://githu
 
 ## What's Implemented
 
+### 2026-05-14 — Sprint 9 (Multi-Venue Maps integration + Gift Registry)
+
+**Backend**
+- `/app/backend/map_features.py` (pre-existing): Full per-event maps router. Endpoints `/api/admin/map/expand`, `/api/admin/map/search`, `/api/admin/map/what3words`, `/api/admin/map/from-3wa`, `/api/invite/{slug}/eta`, `/api/invite/{slug}/venues`, `/api/admin/profiles/{id}/main-venue`, `/api/admin/profiles/{id}/events/{event_id}/venue`. Uses Nominatim (geocoding) + OSRM (routing) + What3Words API (key `XO9LJ5F7` in .env). W3W upstream is on free plan w/ limited access to `convert-to-3wa`; backend soft-fails (`mode=error`, no 5xx) so the UI gracefully continues with manual W3W entry.
+- **NEW** `/app/backend/gift_registry.py` (~250 LOC): `build_gift_router(db, get_current_admin)`. Endpoints:
+  - `GET /api/gifts/presets` — 8 built-in idea cards (blessing, shagun, cash, home, experience, jewellery, charity, pooja)
+  - `GET /api/admin/profiles/{id}/gifts` — fetch (returns defaults for new profile)
+  - `PUT /api/admin/profiles/{id}/gifts` — upsert (couple controls enabled/disabled, headline, message, UPI, bank details, external registry, suggestions list)
+  - `GET /api/invite/{slug}/gifts` — public view: returns enabled-state with masked bank account; returns disabled-state with polite "no gifts please" note when off
+  - Storage: dedicated `gift_registry` collection keyed by `profile_id`. Bank account numbers are masked on the public payload. UI temp IDs (`tmp-...`) are stripped server-side and replaced with UUIDs.
+- Router included in `server.py` next to `map_router` near line 11820.
+
+**Frontend**
+- `/app/frontend/src/components/luxury/VenuePicker.jsx` (pre-existing): combo 4-tab picker (Paste link / Drop pin / Search / Type only) using react-leaflet + Nominatim + W3W auto-lookup. Saves lat/lng/map_link/venue_name/venue_address/what3words/parking_info.
+- **NEW** `/app/frontend/src/components/luxury/VenuesSection.jsx`: public multi-venue display. Renders main venue + per-event venues as cards. Each card has: event-type badge, name, address, click-to-copy What3Words pill (`/// filled.count.soap`), parking info card, and a 6-button deep-link grid (Google Maps / Apple Maps / Uber / Ola / Rapido / WhatsApp Share — green). On-demand "Show ETA" button uses browser geolocation + `/api/invite/{slug}/eta` (OSRM) to return `~25 min · 12.4 km`.
+- **NEW** `/app/frontend/src/components/luxury/GiftRegistrySection.jsx`: public gift display. Two modes:
+  - **Enabled**: shows headline + message + UPI/Bank/External cards (with copy-to-clipboard for UPI ID and IFSC) + grid of curated gift suggestion cards (icon, title, description, price hint, optional image + external link with `rel='noopener noreferrer'`).
+  - **Disabled**: shows polite "No gifts, please" note (toggleable). Hidden completely when both are off.
+- **NEW** `/app/frontend/src/pages/GiftRegistryEditor.jsx`: admin editor at `/admin/profile/:profileId/gifts`. Toggle cards (Gifts allowed / No gifts please), headline + message with character counter, payment toggle rows (UPI / Bank / External registry), preset chips (add from 8 built-in ideas), custom suggestion cards with reorder (up/down arrows), inline edit (icon, title, price hint, description, link, image URL), trash to remove.
+- Wired into `LuxuryPublicInvitation.jsx`: `<VenuesSection slug={slug} />` and `<GiftRegistrySection slug={slug} />` replace/complement the older `TravelLinksSection`. Order: hero → events → travel/venues → **gifts (new)** → shagun → photographer-referral CTA.
+- `LuxuryDashboard.jsx`: new **Gifts** action button next to **Shagun** on each wedding card.
+- `App.js`: route `/admin/profile/:profileId/gifts` → `GiftRegistryEditor`.
+
+### Verification (iteration 5 testing agent)
+- ✅ **10/10 backend pytest pass** on Sprint 9 router (`/api/gifts/presets`, GET/PUT registry, public enabled+disabled, maps search, venues, ETA, main-venue upsert, W3W soft-fail).
+- ✅ Frontend Playwright: super-admin login → gift editor loads → toggle enabled → add preset → save → "Saved successfully" toast.
+- ✅ Public `/invite/aarav-riya-tlogpf`: `VenuesSection` renders with all 6 deep-link buttons, W3W copy pill, parking pill. `GiftRegistrySection` renders with UPI card (clickable copy), 2 suggestion cards.
+
+### Pre-existing baseline (untouched in Sprint 9)
+- See Sprint 6 (Phase 38 Premium AI / Live Wall / WhatsApp / Monetization), Sprint 7 (Brand rename to MAJA Creations + Viral CTA), and all earlier sprints below. All 30/30 prior backend tests still pass.
+
 ### Sprint 1–5 (pre-existing baseline from repo)
 - Cinematic landing page, AdminLogin + SuperAdminLogin
 - LuxuryDashboard (photographer console), LuxurySuperAdminDashboard
