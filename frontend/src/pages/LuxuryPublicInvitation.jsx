@@ -9,6 +9,9 @@ import AmbientMusicPlayer from '@/components/luxury/AmbientMusicPlayer';
 import WatermarkOverlay from '@/components/luxury/WatermarkOverlay';
 import MandalaLoader from '@/components/luxury/MandalaLoader';
 import ScrollSection from '@/components/luxury/ScrollSection';
+import DigitalShagunSection from '@/components/luxury/DigitalShagunSection';
+import TravelLinksSection from '@/components/luxury/TravelLinksSection';
+import LivePhotoWallTeaser from '@/components/luxury/LivePhotoWallTeaser';
 import { getThemeById } from '@/themes/masterThemes';
 import '@/styles/luxury.css';
 
@@ -224,6 +227,11 @@ const LuxuryPublicInvitation = () => {
             )}
           </div>
         </ScrollSection>
+
+        {/* Phase 38 — Live Photo Wall teaser + Travel deep links + Digital Shagun */}
+        <LivePhotoWallTeaser slug={slug} />
+        <TravelLinksSection slug={slug} />
+        <DigitalShagunSection slug={slug} couple={`${bride} & ${groom}`} />
 
         {/* Footer */}
         <footer className="px-6 md:px-16 py-14 text-center border-t" style={{ borderColor: 'var(--lux-border)' }}>

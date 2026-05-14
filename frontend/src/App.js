@@ -31,6 +31,13 @@ import AuditLogsPage from './pages/AuditLogsPage';
 import ReferralsCreditsPage from './pages/ReferralsCreditsPage';
 import ThemeSettingsPage from './pages/ThemeSettingsPage';
 
+// Phase 38 — premium features
+import LivePhotoWall from './pages/LivePhotoWall';
+import LiveGalleryManagement from './pages/LiveGalleryManagement';
+import AIStudio from './pages/AIStudio';
+import WhatsAppManager from './pages/WhatsAppManager';
+import DigitalShagunSettings from './pages/DigitalShagunSettings';
+
 // Legacy fallbacks
 import AdminDashboard from './pages/AdminDashboard';
 import ProfileForm from './pages/ProfileForm';
@@ -90,6 +97,13 @@ function App() {
                 <Route path="/admin/profile/:profileId/referrals" element={<ReferralsCreditsPage />} />
                 <Route path="/admin/profile/:profileId/theme-settings" element={<ThemeSettingsPage />} />
                 <Route path="/admin/audit-logs" element={<AuditLogsPage />} />
+
+                {/* Phase 38 — premium features */}
+                <Route path="/admin/profile/:profileId/ai-studio" element={<AIStudio />} />
+                <Route path="/admin/profile/:profileId/live-gallery" element={<LiveGalleryManagement />} />
+                <Route path="/admin/profile/:profileId/whatsapp" element={<WhatsAppManager />} />
+                <Route path="/admin/profile/:profileId/shagun" element={<DigitalShagunSettings />} />
+                <Route path="/invite/:slug/live-gallery" element={<LivePhotoWall />} />
               </Routes>
             </BrowserRouter>
           </div>

@@ -11779,6 +11779,35 @@ async def ai_generate_story(req: AIStoryRequest, admin_id: str = Depends(get_cur
 async def check_submission_captcha_required(slug, ip_address, device_id, endpoint):
     return await check_submission_attempts(ip_address, device_id, endpoint, slug)
 
+# =====================================================================
+# Phase 38 — Premium features (Live Photo Wall, AI Suite, WhatsApp,
+# Digital Shagun, Travel deep links, Smart RSVP, Analytics v2)
+# =====================================================================
+from premium_features import build_premium_router
+from emergentintegrations.llm.chat import LlmChat, UserMessage as _PremiumUserMsg
+
+
+async def _premium_ai_chat(system_msg: str, session_id: str, user_text: str) -> str:
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not api_key:
+        raise RuntimeError("EMERGENT_LLM_KEY not configured")
+    chat = LlmChat(
+        api_key=api_key,
+        session_id=session_id,
+        system_message=system_msg,
+    ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+    resp = await chat.send_message(_PremiumUserMsg(text=user_text))
+    return str(resp)
+
+
+premium_router = build_premium_router(
+    db=db,
+    get_current_admin=get_current_admin,
+    require_admin=require_admin,
+    ai_chat_factory=_premium_ai_chat,
+)
+app.include_router(premium_router)
+
 # Include the router in the main app
 app.include_router(api_router)
 

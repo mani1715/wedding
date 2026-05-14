@@ -1,0 +1,59 @@
+{
+  "summary": "Phase 38 backend regression: 30/30 pytest pass on the new premium-features router. Verified end-to-end: auth login + /auth/me + admin/profiles regression smoke; WhatsApp status returns {configured:false, mode:'mock'}; mock send-invitation + send-reminder both return mock SIDs with sent counts; AI greeting-personalize returns single-line greeting; AI translate-bulk returns valid JSON dict with same keys for Hindi (te/ta/kn/mr/bn/en code path the same — verified hi as the representative); AI story-v2 returns 3-paragraph cinematic prose (Claude Sonnet 4.5); AI enhance-image roundtrips Pillow base64 with 2x upscale and dimensions returned; Live Gallery GET/PUT settings, uploader-token (72h), desktop multipart upload with X-Uploader-Token header, public /invite/{slug}/live-gallery list (with browser UA), guest base64 upload, favorite toggle on/off, moderate (true/false), and admin delete cleanup — all green; Digital Shagun PUT settings → public /shagun returns UPI deep links (upi://pay?pa=...&am=...&cu=INR&tn=...) → record blessing → /blessings counter + recent list; Travel deep links validated against google_maps/ola/uber/rapido/hotels_nearby_query with lat/lng injection; Itinerary audience filter (family/close/general) returns list; Smart RSVP submit persists all extended fields (meal_preference, dietary_restrictions array, transport_needed, event_rsvps array) and shows up in CSV/XLSX/JSON exports; Analytics v2 returns by_city/by_device/hourly_heatmap(24)/rsvp_funnel/engagement.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "POST /api/live-gallery/desktop-upload",
+        "issue": "Endpoint is gated by BotDetectionMiddleware (rejects non-browser User-Agents with 403). Real desktop uploader apps (Electron/Python) MUST send a real browser User-Agent header, or the middleware must whitelist X-Uploader-Token authenticated requests. Currently a curl/Python without browser UA gets {'error':'Access denied','message':'Automated access not allowed'}. Workaround in tests: send Mozilla UA. Recommend whitelisting this path or making middleware honor X-Uploader-Token."
+      },
+      {
+        "endpoint": "POST /api/admin/profiles/{profile_id}/live-gallery/uploader-token",
+        "issue": "Response upload_url is built from os.environ.get('PUBLIC_BACKEND_URL','') — not set in /app/backend/.env. Currently returns relative '/api/live-gallery/desktop-upload'. Set PUBLIC_BACKEND_URL in .env to the external preview URL or derive from request.base_url so the desktop client gets an absolute URL."
+      },
+      {
+        "endpoint": "GET /api/invite/{slug}/itinerary",
+        "issue": "Audience-filter rank logic at premium_features.py:944-947 says 'general(1) ≥ event_rank' which means general (least privileged) actually sees events ranked 1 (general) — but `family` events (rank 3) are hidden from general. That seems correct, but combined with the `or ev_aud == 'all'` short-circuit, every event without an explicit audience defaults to ev_aud='all' which sets event_rank=4 — and only audience='all' (also rank 4) shows them. Events without `audience` field will leak via `ev_aud == 'all'` short-circuit (final condition), so they DO show for everyone. Fine in practice, but rank table is inverted in intent — worth a comment."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_premium_phase38.py",
+    "/app/test_reports/pytest/phase38_results.xml"
+  ],
+  "action_items": [
+    "Whitelist POST /api/live-gallery/desktop-upload in BotDetectionMiddleware (the X-Uploader-Token is the auth surface — middleware blocks legitimate desktop clients with non-browser UAs). OR document that the desktop uploader app MUST send a browser-like User-Agent.",
+    "Set PUBLIC_BACKEND_URL in /app/backend/.env so uploader-token response returns an absolute upload_url (currently empty → relative). Also affects WhatsApp invitation link.",
+    "(Optional) Refactor /api/invite/{slug}/itinerary audience-rank logic to use a cleaner allow-list (e.g., {'general':{'general','all'}, 'close':{'general','close','all'}, 'family':{'general','close','family','all'}}) — the current rank-comparison code is confusing.",
+    "(Optional, from iteration 3 still open) Add cleanup teardown for TEST_-prefixed records — TestSmartRSVP and TestShagun add records to db.rsvps and db.shagun_records that accumulate across runs."
+  ],
+  "critical_code_review_comments": [
+    "premium_features.py:994 — `export_rsvps_smart.__wrapped__(...)` fallback path will fail because the function is not wrapped (no @functools.wraps). If openpyxl import fails, this fallback raises AttributeError. Either ensure openpyxl is in requirements.txt (it is, since xlsx test passed) or change fallback to a direct CSV inline build.",
+    "premium_features.py:884 — `db.list_collection_names()` is called on every /blessings request. For high traffic this is a slow round-trip — cache the collection-names check or just attempt the count with try/except (cheaper).",
+    "premium_features.py:610 — Path('/app' + url) is a fragile join; use LIVE_GALLERY_DIR / photo_id / ext instead. Currently works because url always starts with '/uploads/...' but a future URL prefix change would silently break delete cleanup.",
+    "premium_features.py:1059 — `view_sessions` collection check + full to_list(10000) per analytics call is O(N) on every render. Add an index on profile_id and consider precomputed daily aggregates.",
+    "BotDetectionMiddleware applied app-wide — but Phase 38 added a new programmatic upload endpoint (/api/live-gallery/desktop-upload) that needs to accept non-browser clients (desktop uploader app, possibly mobile native). Either whitelist X-Uploader-Token paths or make middleware skip when that header is present.",
+    "server.py is now 11835 lines (was 11805 in iteration 3) — Phase 38 wisely went into its own module premium_features.py (good!). Continue this pattern: move WhatsApp, Shagun, Analytics into their own routers once stable.",
+    "premium_features.py: AI endpoints don't consume the admin's credit balance. story-v2/translate-bulk/greeting-personalize all call ai_chat_factory without deducting credits. If credits are meant to gate AI usage (as legacy /admin/ai/story does), wire the same credit-deduction logic.",
+    "uploader_tokens collection has no TTL index — expired tokens accumulate forever. Add a Mongo TTL index on expires_at."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_premium_phase38.py (NEW — 30 tests across 8 feature groups)",
+    "/app/test_reports/pytest/phase38_results.xml (NEW — JUnit XML)"
+  ],
+  "success_rate": {
+    "backend": "100% (30/30 pytest, Phase 38)",
+    "frontend": "not-tested (testing_type=backend only per review_request)"
+  },
+  "test_credentials": "studio@maharani.com / Studio@123 (admin), profile_id=10c85da2-a61c-41fd-80df-318b95545855, slug=aarav-riya-jvbm4g. EMERGENT_LLM_KEY active (Claude Sonnet 4.5).",
+  "seed_data_creation": "Test run wrote: 1 shagun_record (TEST_WellWisher, 1100), 1 rsvp (TEST_SmartGuest), 2 live_photos (deleted at end of TestLiveGallery), 1 uploader_token (not revoked, 72h TTL), 2 whatsapp_logs (1 invitation + 1 reminder, both mock). Cleanup recommended for shagun_records and rsvps TEST_ rows.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Phase 38 router lives in /app/backend/premium_features.py and is mounted via build_premium_router at server.py:11803. All public /api/invite/* paths AND /api/live-gallery/desktop-upload need a browser User-Agent header to bypass BotDetectionMiddleware (Mozilla/5.0 …). Admin /api/admin/* with Bearer token are unaffected by the middleware. AI story-v2 takes 15-30s, set requests timeout >=60s. Twilio mock-mode is by design (placeholder env vars). The 1 issue found was a test-side UA omission, fixed in the test file — no functional backend bug. test_report file: /app/test_reports/iteration_4.json. pytest JUnit: /app/test_reports/pytest/phase38_results.xml.",
+  "rca_of_the_issue": "Only test-side issue: BotDetectionMiddleware applies to ALL routes (it's app.add_middleware, not router-scoped), including /api/live-gallery/desktop-upload which is the programmatic upload endpoint authenticated via X-Uploader-Token instead of JWT. First test run got 403 because the test used python-requests' default UA. Fix: added Mozilla UA to the test. Recommend product-side fix: have BotDetectionMiddleware skip when X-Uploader-Token header is present, or whitelist /api/live-gallery/desktop-upload — otherwise the planned desktop uploader app needs to fake a browser UA, which is fragile."
+}

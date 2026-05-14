@@ -1,0 +1,171 @@
+import React, { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import axios from 'axios';
+import { Gift, Heart, Sparkles, X, Check, ExternalLink } from 'lucide-react';
+
+const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+
+/**
+ * Public-facing Digital Shagun + Wall of Love + Blessing Counter
+ * Mount inside LuxuryPublicInvitation as a section.
+ */
+const DigitalShagunSection = ({ slug, couple }) => {
+  const [shagun, setShagun] = useState(null);
+  const [blessings, setBlessings] = useState(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!slug) return;
+    let mounted = true;
+    (async () => {
+      try {
+        const [s, b] = await Promise.all([
+          axios.get(`${API_URL}/api/invite/${slug}/shagun`),
+          axios.get(`${API_URL}/api/invite/${slug}/blessings`),
+        ]);
+        if (!mounted) return;
+        setShagun(s.data);
+        setBlessings(b.data);
+      } catch (_) {}
+    })();
+    return () => { mounted = false; };
+  }, [slug]);
+
+  if (!shagun?.enabled) return null;
+
+  return (
+    <section className="px-6 md:px-12 py-20 md:py-28 relative" data-testid="public-shagun">
+      <div className="max-w-3xl mx-auto text-center">
+        <motion.span initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+          className="lux-eyebrow block mb-4">◆ With your blessings</motion.span>
+        <motion.h2 initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          className="font-display text-[2.2rem] md:text-[3.4rem] leading-tight" style={{ color: '#FFF8DC' }}>
+          Shagun &amp; <span className="font-script italic text-gold">good wishes</span>
+        </motion.h2>
+        <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
+          transition={{ delay: 0.15 }}
+          className="mt-4 max-w-xl mx-auto text-sm md:text-base italic" style={{ color: 'rgba(255,248,220,0.7)' }}>
+          {shagun.blessing_message || 'Your presence is our greatest gift. If you wish to bless us, you may.'}
+        </motion.p>
+
+        {blessings && (blessings.blessing_count > 0 || blessings.wishes_count > 0) && (
+          <motion.div initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            transition={{ delay: 0.25 }}
+            className="mt-6 inline-flex flex-wrap items-center gap-3">
+            {blessings.blessing_count > 0 && (
+              <Pill icon={Sparkles} label={`${blessings.blessing_count} blessing${blessings.blessing_count > 1 ? 's' : ''}`} />
+            )}
+            {blessings.wishes_count > 0 && (
+              <Pill icon={Heart} label={`${blessings.wishes_count} wish${blessings.wishes_count > 1 ? 'es' : ''}`} />
+            )}
+          </motion.div>
+        )}
+
+        <motion.button initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+          transition={{ delay: 0.35 }}
+          whileHover={{ y: -2 }}
+          onClick={() => setOpen(true)} className="lux-btn mt-7" data-testid="public-shagun-open">
+          <Gift className="w-4 h-4" /> Offer shagun
+        </motion.button>
+      </div>
+
+      <AnimatePresence>
+        {open && <ShagunModal shagun={shagun} slug={slug} couple={couple} onClose={() => { setOpen(false); }} onRecorded={(d) => setBlessings((b) => ({ ...(b||{}), blessing_count: (b?.blessing_count||0) + 1, blessing_total_amount: (b?.blessing_total_amount||0) + (d?.amount || 0) }))} />}
+      </AnimatePresence>
+    </section>
+  );
+};
+
+const Pill = ({ icon: Icon, label }) => (
+  <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full"
+    style={{ border: '1px solid var(--lux-border-strong)', background: 'rgba(212,175,55,0.06)', color: 'rgba(255,248,220,0.8)' }}>
+    <Icon className="w-3.5 h-3.5 text-gold" /> <span className="text-xs tracking-[0.15em] uppercase">{label}</span>
+  </span>
+);
+
+const ShagunModal = ({ shagun, slug, couple, onClose, onRecorded }) => {
+  const [amount, setAmount] = useState(shagun.suggested?.[1]?.amount || 1100);
+  const [customAmount, setCustomAmount] = useState('');
+  const [guestName, setGuestName] = useState('');
+  const [message, setMessage] = useState('');
+  const [recorded, setRecorded] = useState(false);
+
+  const finalAmount = customAmount ? parseInt(customAmount, 10) : amount;
+  const upiLink = `upi://pay?pa=${encodeURIComponent(shagun.upi_id)}&pn=${encodeURIComponent(shagun.payee_name || couple || '')}&am=${finalAmount}&cu=INR&tn=${encodeURIComponent('Shagun for ' + (couple || 'the couple'))}`;
+
+  const recordAndPay = async () => {
+    if (!guestName.trim()) return;
+    try {
+      await axios.post(`${API_URL}/api/invite/${slug}/shagun/record`, {
+        guest_name: guestName, amount: finalAmount, message,
+      });
+      onRecorded?.({ amount: finalAmount });
+      setRecorded(true);
+    } catch (_) { /* still let them pay */ }
+    window.location.href = upiLink;
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[65] flex items-center justify-center p-4"
+      style={{ background: 'rgba(6,4,2,0.88)', backdropFilter: 'blur(10px)' }}
+      onClick={onClose} data-testid="shagun-modal">
+      <motion.div initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0 }}
+        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+        onClick={(e) => e.stopPropagation()}
+        className="lux-glass relative w-full max-w-md p-7"
+        style={{ background: 'rgba(14,10,6,0.97)' }}>
+        <button onClick={onClose} className="absolute top-3 right-3 w-9 h-9 rounded-full grid place-items-center"
+          style={{ color: 'rgba(255,248,220,0.6)', border: '1px solid var(--lux-border)' }}
+          data-testid="shagun-close">
+          <X className="w-4 h-4" />
+        </button>
+        <span className="lux-eyebrow block mb-3">◆ Digital Shagun</span>
+        <h3 className="font-display text-2xl mb-3" style={{ color: '#FFF8DC' }}>
+          For <span className="font-script italic text-gold">{couple || 'the couple'}</span>
+        </h3>
+        <div className="space-y-3 mb-4">
+          <div className="grid grid-cols-3 gap-2">
+            {(shagun.suggested || []).map((s) => (
+              <button key={s.amount} onClick={() => { setAmount(s.amount); setCustomAmount(''); }}
+                className="py-2 rounded-lg text-sm transition-all"
+                style={amount === s.amount && !customAmount
+                  ? { background: '#D4AF37', color: '#16110C', fontWeight: 600 }
+                  : { background: 'transparent', border: '1px solid var(--lux-border)', color: 'rgba(255,248,220,0.85)' }}
+                data-testid={`shagun-amt-${s.amount}`}>
+                ₹{s.amount.toLocaleString('en-IN')}
+              </button>
+            ))}
+          </div>
+          <input type="number" value={customAmount} onChange={(e) => setCustomAmount(e.target.value)} placeholder="Or enter custom amount (₹)"
+            className="w-full px-3 py-2.5 rounded-lg bg-transparent outline-none text-sm"
+            style={{ color: '#FFF8DC', border: '1px solid var(--lux-border)' }}
+            data-testid="shagun-custom-amount" />
+          <input value={guestName} onChange={(e) => setGuestName(e.target.value)} placeholder="Your name (so we can thank you)"
+            className="w-full px-3 py-2.5 rounded-lg bg-transparent outline-none text-sm"
+            style={{ color: '#FFF8DC', border: '1px solid var(--lux-border)' }}
+            data-testid="shagun-guest" />
+          <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="A short blessing (optional)" rows={2}
+            className="w-full px-3 py-2.5 rounded-lg bg-transparent outline-none text-sm"
+            style={{ color: '#FFF8DC', border: '1px solid var(--lux-border)' }}
+            data-testid="shagun-message" />
+        </div>
+        <p className="text-xs mb-4 text-center" style={{ color: 'rgba(255,248,220,0.55)' }}>
+          UPI: <span className="text-gold">{shagun.upi_id}</span>
+        </p>
+        <button onClick={recordAndPay} disabled={!guestName.trim() || finalAmount <= 0} className="lux-btn w-full"
+          data-testid="shagun-pay-now">
+          <Gift className="w-4 h-4" /> Pay ₹{finalAmount?.toLocaleString('en-IN')} via UPI
+        </button>
+        {recorded && (
+          <p className="text-xs mt-3 text-center inline-flex items-center gap-1 justify-center w-full" style={{ color: '#86EFAC' }}>
+            <Check className="w-3.5 h-3.5" /> Recorded! Opening UPI app…
+          </p>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+};
+
+export default DigitalShagunSection;
