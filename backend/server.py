@@ -11815,6 +11815,13 @@ from map_features import build_map_router
 map_router = build_map_router(db=db, get_current_admin=get_current_admin)
 app.include_router(map_router)
 
+# =====================================================================
+# Sprint 9 — Gift Registry (couple-controlled, optional)
+# =====================================================================
+from gift_registry import build_gift_router
+gift_router = build_gift_router(db=db, get_current_admin=get_current_admin)
+app.include_router(gift_router)
+
 # Include the router in the main app
 app.include_router(api_router)
 

@@ -1,0 +1,47 @@
+{
+  "summary": "Sprint 9 — Gift Registry + Multi-Venue/Maps verified end-to-end. 10/10 pytest pass on /api/gifts/presets (8 presets), /api/admin/profiles/{id}/gifts GET+PUT (upsert with enabled+UPI+suggestions and round-trip), /api/invite/{slug}/gifts public (enabled with masked bank, suggestions sorted by order), public disabled-state flip (enabled=false + show_disabled_note), /api/admin/map/search (Nominatim 'Taj Falaknuma' returns results), /api/invite/{slug}/venues (main_venue with deep links google_maps/apple_maps/uber/ola/rapido/whatsapp_share + events list), /api/invite/{slug}/eta (OSRM returns duration_minutes + distance_km), PUT /api/admin/profiles/{id}/main-venue (lat/lng/map_link/what3words/parking_info persist), What3Words soft-fail (200 with mode=error on quota — confirmed). Frontend: super-admin login → /admin/profile/{id}/gifts loads GiftRegistryEditor showing 'Gifts allowed / No gifts' toggle cards (data-testid=toggle-gifts-on/-off); toggling to enabled + clicking add-preset-preset-home + clicking gift-save shows 'Saved successfully' (data-testid=gift-msg). Public /invite/aarav-riya-tlogpf — wax seal dismissed, VenuesSection renders (data-testid=public-venues) with all 6 deep links (gmaps/apple/uber/ola/rapido/share) including what3words ///filled.count.soap and parking pill 'Valet parking available near west gate'; GiftRegistrySection renders (data-testid=public-gift-section) with copy-upi button (aarav@okhdfcbank) and 3 suggestion cards.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "GET /api/gifts/presets",
+        "issue": "Endpoint is gated by BotDetectionMiddleware (rejects non-browser User-Agents with 403). Curl/Python clients without a browser UA cannot fetch the public preset library. The admin GiftRegistryEditor calls it from the browser so the in-app flow works; however, any programmatic consumer (mobile, CLI, partner integration) is blocked. Recommend whitelisting GET /api/gifts/presets in the middleware (it's a fully public, cacheable static list). Test fixed by sending a Mozilla UA."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_sprint9_gifts_venues.py",
+    "/app/test_reports/pytest/sprint9_results.xml"
+  ],
+  "action_items": [
+    "(Optional) Whitelist GET /api/gifts/presets in BotDetectionMiddleware — it's a static public catalog and is currently 403 for non-browser clients.",
+    "(Cleanup, not a bug) The test_put_gifts_upserts test left 1 duplicate 'Home essentials' suggestion in the seeded profile because the UI Playwright flow added a preset before pytest restored the snapshot. Currently 3 suggestions visible on /invite/aarav-riya-tlogpf instead of the original 2. Main agent can dedupe via a single PUT if needed; not blocking."
+  ],
+  "critical_code_review_comments": [
+    "gift_registry.py:189-196 — suggestion ID generation: when admin sends suggestions WITHOUT id (preset adds), GiftSuggestion(default_factory=uuid4) creates a new uuid each PUT. Good — but the UI is sending its temporary `tmp-<ts>` id (line 89 of GiftRegistryEditor.jsx), and pydantic preserves that string (no regex). Result: suggestion ids in DB may be 'tmp-1731580000' strings instead of UUIDs. Add a validator that regenerates the id when it doesn't match a UUID4 pattern, or strip id on the wire and always re-generate server-side.",
+    "gift_registry.py:241 — Bank account masking uses '•' (bullet, U+2022). Fine for display, but some old fonts/SMS gateways render that as '?'. Consider 'X' or '*' for broader compatibility, or expose both masked and last4 fields.",
+    "gift_registry.py:202-206 — GiftRegistry(**merged) re-validates the whole doc on every PUT. If a legacy field is in the existing doc that isn't in the model, pydantic will silently drop it (no extra='forbid'). Add a logger.warning when keys are dropped during merge to catch schema drift.",
+    "BotDetectionMiddleware (server.py) — same finding as iteration 4: app-wide middleware also blocks /api/gifts/presets (purely static, no PII, idempotent GET). Recommend a whitelist set for known-safe public GETs.",
+    "GiftRegistrySection.jsx:113 — external_registry_url is rendered as a raw <a href={url}> with no `rel='noopener noreferrer'` (couple-controlled but guest-clicked). Add rel='noopener noreferrer' to avoid tabnabbing.",
+    "VenuesSection.jsx — confirmed all 6 deep-link buttons render and have data-testid. Good a11y. Consider adding `rel='noopener'` to external map links too."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_sprint9_gifts_venues.py (NEW — 10 tests, Sprint 9)",
+    "/app/test_reports/pytest/sprint9_results.xml (NEW — JUnit XML)"
+  ],
+  "success_rate": {
+    "backend": "100% (10/10 pytest)",
+    "frontend": "100% (editor save + public sections + deep links all verified)"
+  },
+  "test_credentials": "Super admin superadmin@wedding.com / SuperAdmin@123. Profile id 1ea6ba16-ea40-4fca-8086-24a0c32bafab, slug aarav-riya-tlogpf. localStorage token key is 'admin_token'.",
+  "seed_data_creation": "Test run flipped gift_registry.enabled to false then back to true (snapshot restored). UI Playwright added 1 extra preset 'Home essentials' suggestion that remained on the profile (3 suggestions now instead of original 2). PUT /admin/profiles/{id}/main-venue updated name to 'Taj Falaknuma Palace (TEST)' with parking + w3w — main agent may want to revert venue name if it should read just 'Taj Falaknuma Palace'.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Sprint 9 gift_registry router lives at /app/backend/gift_registry.py mounted in server.py ~line 11820. All /api/invite/* and /api/gifts/* public GETs are behind BotDetectionMiddleware — tests must send Mozilla UA. What3Words upstream returns 'quota exceeded' for the configured XO9LJ5F7 key; backend correctly soft-fails (mode=error, no 5xx) — do NOT treat as a bug. Pytest JUnit: /app/test_reports/pytest/sprint9_results.xml. Token in localStorage uses key 'admin_token' (not 'token').",
+  "rca_of_the_issue": "Only test-side fix: BotDetectionMiddleware also gates GET /api/gifts/presets (the new Sprint 9 endpoint). First test run got 403 with default python-requests UA. Fix: added Mozilla UA to the presets test. Product-side: consider whitelisting purely static public GETs (gifts/presets) in the middleware — currently any non-browser consumer is locked out of the preset catalog."
+}

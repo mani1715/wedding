@@ -37,6 +37,7 @@ import LiveGalleryManagement from './pages/LiveGalleryManagement';
 import AIStudio from './pages/AIStudio';
 import WhatsAppManager from './pages/WhatsAppManager';
 import DigitalShagunSettings from './pages/DigitalShagunSettings';
+import GiftRegistryEditor from './pages/GiftRegistryEditor';
 
 // Legacy fallbacks
 import AdminDashboard from './pages/AdminDashboard';
@@ -103,6 +104,7 @@ function App() {
                 <Route path="/admin/profile/:profileId/live-gallery" element={<LiveGalleryManagement />} />
                 <Route path="/admin/profile/:profileId/whatsapp" element={<WhatsAppManager />} />
                 <Route path="/admin/profile/:profileId/shagun" element={<DigitalShagunSettings />} />
+                <Route path="/admin/profile/:profileId/gifts" element={<GiftRegistryEditor />} />
                 <Route path="/invite/:slug/live-gallery" element={<LivePhotoWall />} />
               </Routes>
             </BrowserRouter>

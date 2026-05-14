@@ -11,6 +11,8 @@ import MandalaLoader from '@/components/luxury/MandalaLoader';
 import ScrollSection from '@/components/luxury/ScrollSection';
 import DigitalShagunSection from '@/components/luxury/DigitalShagunSection';
 import TravelLinksSection from '@/components/luxury/TravelLinksSection';
+import VenuesSection from '@/components/luxury/VenuesSection';
+import GiftRegistrySection from '@/components/luxury/GiftRegistrySection';
 import LivePhotoWallTeaser from '@/components/luxury/LivePhotoWallTeaser';
 import MajaReferralCTA from '@/components/luxury/MajaReferralCTA';
 import { getThemeById } from '@/themes/masterThemes';
@@ -229,9 +231,16 @@ const LuxuryPublicInvitation = () => {
           </div>
         </ScrollSection>
 
-        {/* Phase 38 — Live Photo Wall teaser + Travel deep links + Digital Shagun */}
+        {/* Phase 38 — Live Photo Wall teaser */}
         <LivePhotoWallTeaser slug={slug} />
-        <TravelLinksSection slug={slug} />
+
+        {/* Sprint 8 — Multi-venue travel section (W3W + ETA + WhatsApp share + deep links) */}
+        <VenuesSection slug={slug} />
+
+        {/* Sprint 9 — Optional gift registry / "no gifts please" note */}
+        <GiftRegistrySection slug={slug} />
+
+        {/* Digital Shagun (UPI live blessing counter) */}
         <DigitalShagunSection slug={slug} couple={`${bride} & ${groom}`} />
 
         {/* Viral photographer-referral CTA */}

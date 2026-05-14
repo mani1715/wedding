@@ -7,28 +7,43 @@
 - **Role**: `super_admin`
 - **Credits**: 999,999 (unlimited)
 
-## Photographer Admin (B2B customer)
+## Photographer Admin
 - **URL**: `/admin/login`
-- **Email**: `studio@maharani.com`
-- **Password**: `Studio@123`
-- **Role**: `admin`
-- **Credits**: 400
-- **Note**: Already has a seeded wedding profile (id=`10c85da2-a61c-41fd-80df-318b95545855`, slug=`aarav-riya-jvbm4g`, couple: Aarav & Riya)
+- **Note**: `init_admin.py` is broken (missing `name` field in seed). Create photographers via the Super Admin dashboard, or use the Super Admin login above (works for all admin endpoints).
 
-## Phase 38 Premium Features — quick links (logged-in as studio@maharani.com)
-- `/admin/profile/10c85da2-a61c-41fd-80df-318b95545855/ai-studio`     — AI Studio (story / greeting / translate / image enhance)
-- `/admin/profile/10c85da2-a61c-41fd-80df-318b95545855/live-gallery`  — Live Photo Wall management (settings, token, photos)
-- `/admin/profile/10c85da2-a61c-41fd-80df-318b95545855/whatsapp`      — WhatsApp manager (mock mode w/o Twilio creds)
-- `/admin/profile/10c85da2-a61c-41fd-80df-318b95545855/shagun`        — Digital Shagun settings + blessing counter
-- `/invite/aarav-riya-jvbm4g`                                          — Public invitation (Wax-seal opening)
-- `/invite/aarav-riya-jvbm4g/live-gallery`                             — Public live photo wall
+## Sample Profile (Sprint 9 demo)
+- **Profile ID**: `1ea6ba16-ea40-4fca-8086-24a0c32bafab`
+- **Slug**: `aarav-riya-tlogpf`
+- **Couple**: Aarav & Riya
+- **Public URL**: `/invite/aarav-riya-tlogpf`
+- **Gift Editor**: `/admin/profile/1ea6ba16-ea40-4fca-8086-24a0c32bafab/gifts`
+- **Gifts enabled with**: UPI `aarav@okhdfcbank`, 2 suggestions (Home essentials + Donate in our name)
 
-## Notes
-- Passwords are bcrypt-hashed.
-- JWT secret in `/app/backend/.env` (`JWT_SECRET_KEY`).
-- Mongo DB: `wedding_invitations`.
-- `EMERGENT_LLM_KEY` set for AI features (Claude Sonnet 4.5 via emergentintegrations).
-- WhatsApp Twilio creds NOT set yet → mock mode (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM` placeholders in `/app/backend/.env`).
-- Razorpay keys are placeholders → top-up flow disabled until real keys provided.
-- Public endpoints (`/api/invite/...`) are protected by a `BotDetectionMiddleware`; requests must include a real browser User-Agent (no curl default). Test scripts should pass `-A` with a browser UA.
-- Status update endpoint: `PUT /api/super-admin/admins/{admin_id}/status?status=active|suspended|inactive` (query param).
+## Token storage
+- `localStorage` key: `admin_token`
+- JWT-based auth via `POST /api/auth/login`
+
+## Environment notes
+- WHAT3WORDS_API_KEY: `XO9LJ5F7` (configured in `/app/backend/.env`). NB: the API currently returns "Quota exceeded or plan does not have access" for `convert-to-3wa` — the field gracefully degrades (frontend allows manual entry).
+- EMERGENT_LLM_KEY configured for AI features (Claude Sonnet 4.5).
+- WhatsApp Twilio creds NOT set → mock mode.
+- Razorpay keys are placeholders.
+
+## Public endpoints
+Protected by `BotDetectionMiddleware` — use a real browser User-Agent (no curl default). Test scripts must pass `-A "Mozilla/5.0 ..."`.
+
+## New (Sprint 9) endpoints
+- `GET  /api/gifts/presets` — public preset library
+- `GET  /api/admin/profiles/{id}/gifts` — fetch registry
+- `PUT  /api/admin/profiles/{id}/gifts` — upsert registry
+- `GET  /api/invite/{slug}/gifts` — public view (returns disabled-state when off)
+
+## New (Sprint 8 maps) endpoints — already in repo
+- `POST /api/admin/map/expand` — expand maps.app.goo.gl short URLs → lat/lng
+- `GET  /api/admin/map/search?q=...` — Nominatim geocoding
+- `POST /api/admin/map/what3words` — convert lat/lng → /// words
+- `POST /api/admin/map/from-3wa` — /// words → lat/lng
+- `GET  /api/invite/{slug}/venues` — multi-venue public payload (main + events) with deep links + WhatsApp share
+- `GET  /api/invite/{slug}/eta` — live ETA via OSRM
+- `PUT  /api/admin/profiles/{profile_id}/main-venue` — set main venue pin
+- `PUT  /api/admin/profiles/{profile_id}/events/{event_id}/venue` — set per-event venue pin

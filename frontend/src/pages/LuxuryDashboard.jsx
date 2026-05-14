@@ -230,6 +230,7 @@ const LuxuryDashboard = () => {
                         <ActionBtn onClick={() => navigate(`/admin/profile/${p.id}/live-gallery`)}  icon={Camera}   label="Live Wall"  testid={`live-${p.id}`} />
                         <ActionBtn onClick={() => navigate(`/admin/profile/${p.id}/whatsapp`)}      icon={MessageCircle} label="WhatsApp" testid={`whatsapp-${p.id}`} />
                         <ActionBtn onClick={() => navigate(`/admin/profile/${p.id}/shagun`)}        icon={Gift}     label="Shagun"     testid={`shagun-${p.id}`} />
+                        <ActionBtn onClick={() => navigate(`/admin/profile/${p.id}/gifts`)}         icon={Gift}     label="Gifts"      testid={`gifts-${p.id}`} />
                         {isPublished && p.share_link && (
                           <ActionBtn
                             onClick={() => window.open(`/invite/${p.share_link}`, '_blank')}

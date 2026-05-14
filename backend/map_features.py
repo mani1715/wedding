@@ -185,7 +185,9 @@ def build_map_router(db, get_current_admin):
                         "language": req.language},
             )
             if r.status_code != 200:
-                raise HTTPException(status_code=502, detail=f"W3W error: {r.text[:120]}")
+                # Soft fail — UI continues without W3W
+                return {"words": None, "mode": "error",
+                        "note": f"W3W upstream: {r.text[:120]}"}
             j = r.json()
             return {
                 "words": j.get("words"),
