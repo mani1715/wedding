@@ -101,3 +101,9 @@ frontend/node_modules/.cache/
 
 # Additional log patterns
 *.log
+
+# AWS secrets (private keys etc)
+backend/secrets/
+secrets/
+*.pem
+

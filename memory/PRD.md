@@ -23,6 +23,42 @@ Build the premium AI-powered Indian wedding photographer SaaS from https://githu
 
 ## What's Implemented
 
+### 2026-05-14 — Sprint 10 (Live AI Photo Gallery — AWS S3 + Rekognition + CloudFront)
+
+**Backend**
+- **NEW** `/app/backend/aws_service.py` (~250 LOC): wraps boto3 S3, Rekognition, CloudFront signed URLs (RSA-SHA1) + Pillow thumbnails. Single `healthcheck()` returns reachability of each AWS service. Falls back gracefully to S3 presigned URLs when CloudFront key pair isn't configured.
+- **NEW** `/app/backend/gallery_features.py` (~500 LOC): `build_gallery_router(db, get_current_admin)`. Endpoints:
+  - **Admin (JWT)**: enable gallery (creates per-wedding Rekognition collection `maja_wedding_<id>`), update upload methods, regenerate 24h live token, get credentials (live URL + SD-card POST URL + QR data), list photos with CloudFront signed URLs, delete photo (also drops faces from Rekognition), bulk upload (multipart, batched), stats by method, AWS health.
+  - **Live upload (token-gated, no login)**: `POST /api/live-upload/{profile_id}?token=...` for both Phone Live mode and WiFi-SD-card POSTs. Status endpoint returns counter + last 10 thumbs for the live page.
+  - **Public**: `/api/public/gallery/{slug}/info` (enabled? count?), `/face-search` (multipart selfie → Rekognition SearchFacesByImage → matched photo IDs + signed thumb/orig URLs + similarity %), `/photos?session_id=` (re-load session), `/download-zip?session_id=` (zipstream-ng on-the-fly ZIP from S3).
+- **APScheduler** (AsyncIOScheduler in `server.py` on_startup):
+  - Daily 3:00 AM IST (`Asia/Kolkata`) → `cleanup_expired_galleries` finds profiles past `gallery_config.auto_delete_at` (= link_expiry_date + 1 day), deletes S3 prefix, deletes Rekognition collection, purges Mongo records.
+  - Hourly :15 → `cleanup_expired_selfies` purges sessions/S3 selfies older than 24h.
+- Storage layout: `s3://<bucket>/weddings/{profile_id}/photos/{photo_id}/orig.jpg` + `thumb.jpg` (tagged with `expire-at=YYYY-MM-DD`, `wedding=<id>`, `method=<bulk|phone_live|...>`). Selfies under `weddings/{profile_id}/selfies/{session_id}.jpg`.
+- New collections: `gallery_photos`, `face_search_sessions`. Profile gets embedded `gallery_config` dict.
+- AWS creds live in `/app/backend/.env` (NEVER in git). CloudFront private key at `/app/backend/secrets/cf_private_key.pem` (chmod 600, `secrets/` + `*.pem` in `.gitignore`).
+- IAM permissions needed: `s3:PutObject`, `s3:GetObject`, `s3:DeleteObject`, `s3:ListBucket`, `rekognition:CreateCollection`, `rekognition:DeleteCollection`, `rekognition:IndexFaces`, `rekognition:DeleteFaces`, `rekognition:SearchFacesByImage`.
+
+**Frontend**
+- **NEW** `/app/frontend/src/pages/GalleryManager.jsx` at `/admin/profile/:profileId/gallery`: 4-tab dashboard (Photos / Upload methods / Bulk upload / Settings). Header shows "● AWS connected" badge via `/admin/gallery/aws/health`. Photos tab is a grid of CloudFront-signed thumbnails with face-count badge + delete/view overlay. Upload methods tab shows toggle + setup per method, with **QR code** (qrcode.react) for Phone Live mode + copyable 24h URL + regen button + SD-card POST URL. Bulk tab is a drag-drop zone (react-dropzone) that batches uploads in chunks of 5 with live progress bar.
+- **NEW** `/app/frontend/src/pages/PhotographerLiveMode.jsx` at `/live/:profileId?token=...`: mobile-first token-gated page. Big "Take Photo Now" (uses `<input capture='environment'>`) + "Pick from Gallery" buttons. Queue + auto-retry. Live counter that polls `/api/live-upload/{id}/status` every 10s. Online/offline indicator. Shows last 10 server-side thumbs + this-session queue with done/failed/pending badges.
+- **NEW** `/app/frontend/src/components/luxury/FindMyPhotosModal.jsx`: fullscreen modal triggered from public invite. 4 steps (intro / analyzing / results / error). Selfie capture (`capture='user'`) or gallery pick. Submits multipart `selfie` to `/api/public/gallery/{slug}/face-search`. Results: hero count ("Found N photos of you 🎉"), big "Download all as ZIP" button (streams via backend), thumbnail grid with similarity % badge + per-photo View/Download.
+- `LuxuryPublicInvitation.jsx`: fetches `/api/public/gallery/{slug}/info` on mount; renders **"◆ AI-POWERED PHOTO SEARCH · Find *your photos* from the wedding"** CTA section only when gallery is enabled. Clicking opens `FindMyPhotosModal`.
+- `LuxuryDashboard.jsx`: new **AI Gallery** action button (Camera icon) next to Gifts on each wedding card.
+- `App.js`: 2 new routes — `/admin/profile/:profileId/gallery` and `/live/:profileId`.
+
+### Verified end-to-end (manual + curl)
+- ✅ AWS health check returns `s3_reachable: true, rekognition_reachable: true, cf_signer: true` against user's bucket `wedding-gallery-maneesh-1715` in ap-south-1 with CF distribution `dwm1yql2srdse.cloudfront.net`.
+- ✅ Gallery enabled on a test profile → Rekognition collection `maja_wedding_<id>` created.
+- ✅ Bulk upload 3 sample portrait photos → each got `face_count: 1`, indexed, S3 keys returned with valid CloudFront signed URLs.
+- ✅ Public face-search with a selfie matching one photo → returned `match_count: 1`, `similarity: 100.0`, valid signed thumb + original URLs.
+- ✅ ZIP download endpoint serves multipart streamed zip without buffering full payload.
+- ✅ Auto-delete scheduler started successfully on backend startup (`[gallery] scheduler started (daily 3am IST + hourly selfie)`).
+- ✅ Frontend Playwright: Gallery Manager loads with all 4 tabs, AWS green badge, QR code rendered for Phone Live mode, 24h URL visible + copy/regen buttons working. Public invite shows "Find My Photos" CTA → modal opens with Take Selfie / Choose Photo buttons + 24h auto-delete privacy disclaimer.
+
+### Pre-existing baseline
+- See Sprint 9 (Multi-Venue Maps + Gift Registry), Sprint 7 (Brand rename), Sprint 6 (Phase 38 Premium AI / Live Wall / WhatsApp / Monetization). All prior backend tests still pass.
+
 ### 2026-05-14 — Sprint 9 (Multi-Venue Maps integration + Gift Registry)
 
 **Backend**

@@ -14,6 +14,7 @@ import TravelLinksSection from '@/components/luxury/TravelLinksSection';
 import VenuesSection from '@/components/luxury/VenuesSection';
 import GiftRegistrySection from '@/components/luxury/GiftRegistrySection';
 import LivePhotoWallTeaser from '@/components/luxury/LivePhotoWallTeaser';
+import FindMyPhotosModal from '@/components/luxury/FindMyPhotosModal';
 import MajaReferralCTA from '@/components/luxury/MajaReferralCTA';
 import { getThemeById } from '@/themes/masterThemes';
 import '@/styles/luxury.css';
@@ -30,6 +31,8 @@ const LuxuryPublicInvitation = () => {
   const [requirePasscode, setRequirePasscode] = useState(false);
   const [rsvpDone, setRsvpDone] = useState(false);
   const [wishDone, setWishDone] = useState(false);
+  const [galleryInfo, setGalleryInfo] = useState(null);
+  const [findOpen, setFindOpen] = useState(false);
 
   useEffect(() => {
     document.body.classList.add('luxe', 'luxe-grain', 'luxe-vignette');
@@ -37,6 +40,13 @@ const LuxuryPublicInvitation = () => {
   }, []);
 
   useEffect(() => { fetchInvite(); /* eslint-disable-next-line */ }, [slug]);
+
+  useEffect(() => {
+    if (!slug) return;
+    axios.get(`${API_URL}/api/public/gallery/${slug}/info`)
+      .then((r) => setGalleryInfo(r.data))
+      .catch(() => setGalleryInfo(null));
+  }, [slug]);
 
   const fetchInvite = async (code = null) => {
     setLoading(true); setError('');
@@ -234,7 +244,27 @@ const LuxuryPublicInvitation = () => {
         {/* Phase 38 — Live Photo Wall teaser */}
         <LivePhotoWallTeaser slug={slug} />
 
-        {/* Sprint 8 — Multi-venue travel section (W3W + ETA + WhatsApp share + deep links) */}
+        {/* Sprint 10 — Find My Photos CTA (AI face match) */}
+        {galleryInfo?.enabled && (
+          <section className="px-6 md:px-12 py-12 md:py-16 text-center" data-testid="find-photos-cta">
+            <motion.div initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+              transition={{ duration: 0.7 }} className="max-w-2xl mx-auto">
+              <span className="lux-eyebrow inline-block mb-3">◆ AI-powered photo search</span>
+              <h2 className="font-display text-[1.9rem] md:text-[2.6rem] mb-3" style={{ color: '#FFF8DC' }}>
+                Find <span className="font-script italic text-gold">your photos</span> from the wedding
+              </h2>
+              <p className="text-sm md:text-base mb-6" style={{ color: 'rgba(255,248,220,0.7)' }}>
+                Upload one selfie. Our AI will instantly find every photo of you from the {galleryInfo.total_photos || ''} captured at the wedding.
+              </p>
+              <button onClick={() => setFindOpen(true)} className="lux-btn inline-flex items-center gap-2"
+                data-testid="open-find-photos">
+                <Sparkles className="w-4 h-4" /> Find My Photos
+              </button>
+            </motion.div>
+          </section>
+        )}
+
+        {/* Sprint 8 — Multi-venue travel section */}
         <VenuesSection slug={slug} />
 
         {/* Sprint 9 — Optional gift registry / "no gifts please" note */}
@@ -257,6 +287,7 @@ const LuxuryPublicInvitation = () => {
         {musicUrl && <AmbientMusicPlayer src={musicUrl} defaultVolume={0.35} />}
         <PetalConfetti trigger={rsvpDone ? Date.now() : false} count={42} duration={5200} />
         <PetalConfetti trigger={wishDone ? Date.now() : false} count={26} duration={4200} />
+        <FindMyPhotosModal slug={slug} open={findOpen} onClose={() => setFindOpen(false)} />
       </div>
     </WaxSealOpening>
   );

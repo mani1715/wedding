@@ -38,6 +38,8 @@ import AIStudio from './pages/AIStudio';
 import WhatsAppManager from './pages/WhatsAppManager';
 import DigitalShagunSettings from './pages/DigitalShagunSettings';
 import GiftRegistryEditor from './pages/GiftRegistryEditor';
+import GalleryManager from './pages/GalleryManager';
+import PhotographerLiveMode from './pages/PhotographerLiveMode';
 
 // Legacy fallbacks
 import AdminDashboard from './pages/AdminDashboard';
@@ -105,6 +107,8 @@ function App() {
                 <Route path="/admin/profile/:profileId/whatsapp" element={<WhatsAppManager />} />
                 <Route path="/admin/profile/:profileId/shagun" element={<DigitalShagunSettings />} />
                 <Route path="/admin/profile/:profileId/gifts" element={<GiftRegistryEditor />} />
+                <Route path="/admin/profile/:profileId/gallery" element={<GalleryManager />} />
+                <Route path="/live/:profileId" element={<PhotographerLiveMode />} />
                 <Route path="/invite/:slug/live-gallery" element={<LivePhotoWall />} />
               </Routes>
             </BrowserRouter>

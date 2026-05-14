@@ -11822,6 +11822,50 @@ from gift_registry import build_gift_router
 gift_router = build_gift_router(db=db, get_current_admin=get_current_admin)
 app.include_router(gift_router)
 
+# =====================================================================
+# Sprint 10 — Live AI Photo Gallery (S3 + Rekognition + CloudFront)
+# =====================================================================
+from gallery_features import (build_gallery_router, cleanup_expired_galleries,
+                                cleanup_expired_selfies)
+gallery_router = build_gallery_router(db=db, get_current_admin=get_current_admin)
+app.include_router(gallery_router)
+
+# Daily cleanup jobs (3am IST + hourly selfie purge)
+try:
+    from apscheduler.schedulers.asyncio import AsyncIOScheduler
+    from apscheduler.triggers.cron import CronTrigger
+    import pytz as _pytz
+    _ist = _pytz.timezone("Asia/Kolkata")
+    _gallery_scheduler = AsyncIOScheduler(timezone=_ist)
+
+    async def _daily_gallery_cleanup():
+        await cleanup_expired_galleries(db)
+
+    async def _hourly_selfie_cleanup():
+        await cleanup_expired_selfies(db)
+
+    _gallery_scheduler.add_job(_daily_gallery_cleanup,
+        CronTrigger(hour=3, minute=0, timezone=_ist), id="gallery_daily")
+    _gallery_scheduler.add_job(_hourly_selfie_cleanup,
+        CronTrigger(minute=15, timezone=_ist), id="selfie_hourly")
+
+    @app.on_event("startup")
+    async def _start_gallery_scheduler():
+        try:
+            _gallery_scheduler.start()
+            logger.info("[gallery] scheduler started (daily 3am IST + hourly selfie)")
+        except Exception as e:
+            logger.warning("[gallery] scheduler start failed: %s", e)
+
+    @app.on_event("shutdown")
+    async def _stop_gallery_scheduler():
+        try:
+            _gallery_scheduler.shutdown(wait=False)
+        except Exception:
+            pass
+except Exception as _e:
+    logger.warning("APScheduler init failed: %s", _e)
+
 # Include the router in the main app
 app.include_router(api_router)
 
