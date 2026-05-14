@@ -11808,6 +11808,13 @@ premium_router = build_premium_router(
 )
 app.include_router(premium_router)
 
+# =====================================================================
+# Sprint 8 — Smart Venue / Per-event maps / What3Words / Live ETA
+# =====================================================================
+from map_features import build_map_router
+map_router = build_map_router(db=db, get_current_admin=get_current_admin)
+app.include_router(map_router)
+
 # Include the router in the main app
 app.include_router(api_router)
 

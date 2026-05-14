@@ -178,6 +178,12 @@ class WeddingEvent(BaseModel):
     
     # PHASE 18: Event Design System
     phase18_design_id: Optional[str] = None  # design_1 through design_8 from DESIGN_REGISTRY
+
+    # Sprint 8: Smart Venue (per-event)
+    latitude: Optional[float] = None         # Drop-pin latitude
+    longitude: Optional[float] = None        # Drop-pin longitude
+    what3words: Optional[str] = None         # e.g. "filled.count.soap"
+    parking_info: Optional[str] = None       # Free-form parking guidance
     
     # Divine decoration flags - Multi-event requirement
     show_lord: Optional[bool] = True  # Show lord/deity images (showLord)
@@ -725,6 +731,12 @@ class BackgroundMusic(BaseModel):
 
 class MapSettings(BaseModel):
     embed_enabled: bool = False  # Default OFF (safe default)
+    # Sprint 8: Smart Venue (main venue level)
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    map_link: Optional[str] = None
+    what3words: Optional[str] = None
+    parking_info: Optional[str] = None
 
 
 class ContactInfo(BaseModel):
