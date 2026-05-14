@@ -169,6 +169,10 @@ class BotDetectionMiddleware(BaseHTTPMiddleware):
         # Skip bot detection for admin, API, and static endpoints
         if any(path.startswith(prefix) for prefix in ["/api/admin", "/api/auth", "/docs", "/openapi.json", "/robots.txt", "/sitemap.xml"]):
             return await call_next(request)
+
+        # PHASE 38: Whitelist programmatic upload endpoint when authenticated via X-Uploader-Token
+        if path == "/api/live-gallery/desktop-upload" and request.headers.get("x-uploader-token"):
+            return await call_next(request)
         
         # Get user agent
         user_agent = request.headers.get("user-agent", "")

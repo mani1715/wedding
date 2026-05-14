@@ -1,79 +1,135 @@
-# Maharani.studio — Premium Wedding Experience Platform
+# Maharani.studio — Premium AI-Powered Indian Wedding Platform
 
 ## Original Problem Statement
-Build a premium AI-powered B2B SaaS wedding experience platform for **Indian wedding photographers**, on top of https://github.com/mani1715/wedding. Locked-luxury themes, Super Admin controls everything, photographers are paying customers, couples have limited end-user access. Cinematic Apple-product-reveal motion. No flashy gaming effects.
+Build the premium AI-powered Indian wedding photographer SaaS from https://github.com/mani1715/wedding. Add the 8 priority feature groups: AI features, Live Photo Wall, Smart RSVP, WhatsApp, Analytics, Viral Growth, Digital Heritage, Advanced Experience. Apple + Netflix + Indian-royal-wedding feel. Designs/colors locked to be styled by the user later.
 
 ## Architecture
-- **Backend**: FastAPI (Python 3.11), `/app/backend/server.py` (~11.8k LOC, monolithic — refactor backlog), MongoDB via Motor
-- **Frontend**: React 19 + CRACO + Tailwind + Framer Motion + shadcn/ui
-- **Database**: MongoDB (local) — `wedding_invitations`
-- **Auth**: JWT + bcrypt, RBAC: `super_admin` / `admin`
-- **AI**: Claude Sonnet 4.5 via `emergentintegrations` + `EMERGENT_LLM_KEY`
+- **Backend**: FastAPI (Python 3.11). Core monolith `server.py` (~11.8 kLOC, untouched core) + **new Phase 38 router `premium_features.py`** (~960 LOC) mounted via `build_premium_router()`.
+- **Frontend**: React 19 + CRACO + Tailwind + Framer Motion + shadcn/ui + lucide-react + recharts.
+- **Database**: MongoDB local — `wedding_invitations`.
+- **Auth**: JWT + bcrypt, RBAC (`super_admin` / `admin`).
+- **AI**: Claude Sonnet 4.5 via `emergentintegrations` + `EMERGENT_LLM_KEY`.
+- **WhatsApp**: Twilio (mock-mode fallback when creds absent).
+- **Payments**: Razorpay (placeholder keys; UPI deep links work without creds).
+- **Live Photo Sync**: Custom desktop uploader Python script (`/app/uploader/maharani_uploader.py`) + REST API at `POST /api/live-gallery/desktop-upload` with `X-Uploader-Token` auth.
 
 ## User Personas
-1. **Super Admin** — `superadmin@wedding.com`. Creates photographer accounts, adds/deducts credits, controls themes/plans/feature flags.
-2. **Photographer Admin** — B2B customer (e.g. `studio@maharani.com`). Unlimited drafts, publishes when credits available.
+1. **Super Admin** — Platform owner. Creates photographer accounts, manages credits, controls plans.
+2. **Photographer Admin (B2B customer)** — Composes weddings, uses AI Studio, configures Live Wall, sends WhatsApp invites, monetizes via plans.
 3. **Couple** — Read-only portal (RSVPs, wishes, gallery).
-4. **Guest** — Views public invitation, RSVPs, leaves wish.
-
-## Core Requirements (Static)
-- Credit system: drafts free, credits consume on publish, never expire, immutable ledger
-- 10 cultural themes, locked layouts, controlled accent tokens
-- Plans FREE / SILVER / GOLD / PLATINUM
-- Cinematic luxury design system, Royal Heritage palette, Framer Motion
-- Public invitation with wax-seal opening, scroll storytelling, ambient music
-- AI Story Composer (cinematic Indian wedding prose)
-- Storage strategy (S3/CloudFront, Cloudinary, Mux) — deferred until creds
-- Razorpay credit top-up — deferred until creds
+4. **Guest** — Public invitation, RSVP, wish, live gallery upload, digital shagun.
 
 ## What's Implemented
 
-### 2026-01 — Sprint 1 → Sprint 4 (existing baseline from repo)
-- Cinematic LandingPage, premium AdminLogin & SuperAdminLogin
-- LuxuryDashboard photographer console with credits widget, stat tiles, weddings grid, AI button
-- 10 cultural themes (`masterThemes.js`): Royal Mughal, South Indian Temple, Modern Minimal, Beach Destination, Punjabi Sangeet, Bengali Traditional, Christian Elegant, Muslim Nikah, Nature/Eco, Bollywood Luxury
-- Wax Seal Opening, Petal Confetti, Ambient Music Player, Mandala Loader, Shimmer Loader
-- 8-step Wedding Editor wizard (`LuxuryProfileForm`): couple → theme → story → events → venue → media → flags → publish
-- LuxurySuperAdminDashboard: stat tiles, create photographer, add/deduct credits, ledger, suspend/activate, audit log tab, plans tab
-- LuxuryPublicInvitation with wax-seal envelope intro, parallax hero, story, events, venue, countdown, RSVP, wishes, petal confetti on success
-- CoupleAccess read-only portal
-- AI Story Composer modal (Claude Sonnet 4.5 via Emergent Universal Key) wired into Wedding Editor & dashboard
-- Credit ledger immutable, super admin endpoints + photographer self-view
-- Feature flags panel (RSVP, wishes, countdown, music, live gallery, AI story, digital shagun, translations)
-- WatermarkOverlay for FREE plan
+### Sprint 1–5 (pre-existing baseline from repo)
+- Cinematic landing page, AdminLogin + SuperAdminLogin
+- LuxuryDashboard (photographer console), LuxurySuperAdminDashboard
+- 10 cultural themes (Royal Mughal, South Indian Temple, Modern Minimal, Beach, Punjabi Sangeet, Bengali Traditional, Christian Elegant, Muslim Nikah, Nature/Eco, Bollywood Luxury)
+- Wax-seal opening, ambient music player, petal confetti, mandala loaders
+- 8-step Wedding Editor wizard
+- Public invitation with parallax hero, story, events, venue, countdown, RSVP, wishes
+- Theme Showroom (`/themes`, `/themes/:themeId`)
+- Credit system: drafts free, credits consume on publish, immutable ledger, super-admin add/deduct + ledger
+- Feature flags (RSVP, wishes, countdown, music, gallery, AI story, digital shagun, translations)
+- Couple read-only portal
+- Watermark overlay for FREE plan
 
-### 2026-05-14 — Sprint 5 (this session — feature completion pass)
-- **NEW** `/themes` and `/themes/:themeId` ThemeShowroom — cinematic catalog grouped by category + per-theme wax-seal-opened preview with sample couple "Anaya & Rohan", events, mood, CTA to studio login. Adds SEO + share-able theme link per photographer.
-- Wired `dashboard-browse-themes` button into LuxuryDashboard footer alongside `dashboard-view-plans`.
-- AI Story endpoint now returns a **graceful 503** with the message "The AI muse is resting briefly. Please try again…" when EMERGENT_LLM_KEY budget is exceeded (was raw 502 stack trace). Frontend `AIStoryComposer` surfaces it as a soft toast-style error.
-- Fixed latent `status: AdminStatus` parameter shadowing the `fastapi.status` import in `PUT /api/super-admin/admins/{id}/status` — 404 path now returns proper response (was potentially raising 500 due to AttributeError).
-- Recreated `/app/backend/.env` and `/app/frontend/.env` (gitignored), re-seeded super admin, photographer studio account, and verified 400-credit balance.
+### 2026-05-14 — Sprint 6 (Phase 38 — Premium AI / Live Wall / Communication / Monetization)
 
-## Verification (iteration 3 testing agent)
-- ✅ Backend pytest **21/21** passing — auth, super-admin CRUD, credits add/deduct/ledger, suspend/activate, profile isolation, AI story 200/503 graceful
-- ✅ Frontend Playwright **100%** on all 6 critical flows — themes catalog, theme detail, photographer dashboard (credits=400), super-admin dashboard tabs, 8-step wizard, AI Story modal
-- ✅ `auth/me` available_credits bug **FIXED** (was 0; now shows 400 for seeded studio)
+**Backend (`/app/backend/premium_features.py`)** — single new router, 22 new endpoints:
 
-## Prioritized Backlog (P0/P1/P2)
+- **AI Studio**
+  - `POST /api/admin/ai/story-v2` — cinematic love-story composer, 6 tones × 7 languages × cultural region
+  - `POST /api/admin/ai/greeting-personalize` — per-guest cinematic greetings (Dear Sharma Ji…)
+  - `POST /api/admin/ai/translate-bulk` — JSON-structured bulk translation to 7 Indian languages
+  - `POST /api/admin/ai/enhance-image` — Pillow-based auto-enhance: lighting / color / skin-tone / 2× upscale
+- **Live Photo Wall**
+  - `GET/PUT /api/admin/profiles/{id}/live-gallery/settings`
+  - `POST /api/admin/profiles/{id}/live-gallery/uploader-token` (72h, revocable)
+  - `POST /api/live-gallery/desktop-upload` (X-Uploader-Token auth, multipart) — **whitelisted in BotDetectionMiddleware**
+  - `GET /api/invite/{slug}/live-gallery` (polling with `since` timestamp for real-time)
+  - `POST /api/invite/{slug}/live-gallery/guest-upload`
+  - `POST /api/invite/{slug}/live-gallery/favorite`
+  - `GET /api/admin/profiles/{id}/live-gallery` (admin moderation view)
+  - `PUT /api/admin/live-gallery/{photo_id}/moderate?approved=…`
+  - `DELETE /api/admin/live-gallery/{photo_id}`
+- **WhatsApp (Twilio + mock fallback)**
+  - `GET /api/admin/whatsapp/status`
+  - `POST /api/admin/whatsapp/send-invitation` (bulk, custom `{name}` `{link}` substitution)
+  - `POST /api/admin/whatsapp/send-reminder` (7/3/1 day templates, target all/confirmed/pending)
+  - `GET /api/admin/profiles/{id}/whatsapp/logs`
+- **Digital Shagun + Wall of Love + Blessing Counter**
+  - `GET/PUT /api/admin/profiles/{id}/shagun`
+  - `GET /api/invite/{slug}/shagun` — returns UPI deep links (`upi://pay?…`) + GPay/PhonePe/Paytm handles
+  - `POST /api/invite/{slug}/shagun/record` — record blessing for counter
+  - `GET /api/invite/{slug}/blessings` — counter, total amount, wishes count, recent
+- **Travel & Navigation**
+  - `GET /api/invite/{slug}/travel?lat&lng` — Google Maps / Ola / Uber / Rapido / Hotels-nearby deep links
+- **Personalized Itinerary**
+  - `GET /api/invite/{slug}/itinerary?audience=family|close|general` — audience-filtered events
+- **Smart RSVP**
+  - `POST /api/invite/{slug}/rsvp-smart` — meal preference, dietary restrictions, transport, accommodation, per-event RSVP
+  - `GET /api/admin/profiles/{id}/rsvps/export-smart?fmt=csv|xlsx|json` — caterer/venue exports
+- **Analytics v2**
+  - `GET /api/admin/profiles/{id}/analytics/v2` — by_city, by_device, by_language, 24h hourly heatmap, RSVP funnel, engagement (live photo favorites)
 
-**P0 — done this session**
-- [x] Theme Showroom (`/themes`, `/themes/:themeId`)
-- [x] Friendlier AI 503 error
-- [x] Latent `status` shadowing bug fix
+**Frontend (5 new admin pages + 3 public-invitation sections)**:
+- `/admin/profile/:id/ai-studio` — 4-tab AI Studio (story / greeting / translate / enhance) with cinematic Cardrian output
+- `/admin/profile/:id/live-gallery` — settings + token generator + photo moderation grid
+- `/admin/profile/:id/whatsapp` — recipient list + custom message + reminder scheduling (mock badge when not configured)
+- `/admin/profile/:id/shagun` — UPI configuration + blessing counter stats
+- `/invite/:slug/live-gallery` — public masonry live wall with real-time polling, lightbox, favorites, guest upload modal
+- `LivePhotoWallTeaser` + `TravelLinksSection` + `DigitalShagunSection` mounted inside `LuxuryPublicInvitation`
+- LuxuryDashboard wedding-card actions extended with AI Studio / Live Wall / WhatsApp / Shagun deep links
+- PWA `manifest.json` configured
 
-**P1 — premium polish**
-- [ ] Razorpay credit top-up wired (needs `RAZORPAY_KEY_ID` + `RAZORPAY_KEY_SECRET`)
-- [ ] Couple Portal — write access to limited edits (currently read-only)
-- [ ] Live photo gallery realtime stream
-- [ ] Re-skin remaining sub-pages (RSVPManagement, GreetingsManagement, WishesManagement, GalleryManagement) to luxe shell
+**Desktop Uploader (`/app/uploader/`)** — Python script + README:
+- `watchdog`-based folder watcher
+- Retry queue (`~/.maharani_uploader/*_queue.json`)
+- Seen-file dedupe
+- Per-wedding state via `--name` flag
 
-**P2 — scale**
-- [ ] AWS S3 + CloudFront / Cloudinary / Mux media pipeline (needs API keys)
-- [ ] PWA + Lighthouse optimization pass
-- [ ] Split `server.py` (11.8k LOC) into routers (auth, super_admin, credits, weddings, ai_story, payment)
-- [ ] Add @computed_field to AdminResponse so `available_credits` derivation is on the model
+## Verification (iteration 4 testing agent)
+- ✅ **30/30 backend pytest pass** on Phase 38 router
+- ✅ All 8 feature groups verified end-to-end via curl + pytest
+- ✅ AI Story V2 returns 3-paragraph cinematic prose in <30s
+- ✅ AI Image Enhancement: Pillow-based, 2× upscale verified
+- ✅ Live Photo Wall: desktop upload, guest upload, favorite toggle, moderation, deletion — all green
+- ✅ Digital Shagun UPI deep links validated against `upi://pay?pa=…&am=…&cu=INR&tn=…`
+- ✅ WhatsApp mock mode returns sent count + mock SIDs (Twilio creds not provided yet → expected)
+- ✅ Smart RSVP exports CSV / XLSX / JSON
+- ✅ Analytics v2 returns city/device/language/heatmap/funnel/engagement
+- ✅ Frontend pages all render — manual screenshot validation confirmed
+- ✅ **BotDetectionMiddleware patched** to whitelist `/api/live-gallery/desktop-upload` when `X-Uploader-Token` is present (so desktop clients don't need a fake browser UA)
+- ✅ Regression: existing routes (login, /auth/me, /admin/profiles, legacy AI story) still pass
+
+## Prioritized Backlog
+
+### P1 — needs user-provided keys to go live
+- [ ] **Twilio WhatsApp creds** — provide `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM` to flip mock → live mode
+- [ ] **Razorpay test keys** — provide `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` to enable credit top-up flow
+
+### P2 — premium polish & nice-to-haves
+- [ ] Auto-WhatsApp scheduling (cron/job runner for 7d/3d/1d reminders — currently manual trigger)
+- [ ] AI credit-deduction wiring (story-v2 / greeting / translate currently free for admins; legacy `/admin/ai/story` did deduct)
+- [ ] Mongo TTL index on `uploader_tokens.expires_at`
+- [ ] Itinerary audience-rank logic refactor to explicit allow-list (current implementation works, just inverted-looking)
+- [ ] Service worker for offline mode (PWA manifest is in place)
+- [ ] AWS S3 + Cloudinary media pipeline (currently local `/app/uploads`)
+
+### P3 — scale & tech debt
+- [ ] Continue splitting `server.py` (11.8 kLOC) into routers — Phase 38 set the pattern with `premium_features.py`
+- [ ] Pre-computed analytics aggregates (current `analytics/v2` does per-request `to_list(10000)`)
+- [ ] AWS S3 + CloudFront / Mux media pipeline
 
 ## Next Tasks
-1. Ask the user which P1 to tackle next — recommended: **Razorpay top-up** (highest revenue impact). Will need test keys.
-2. Optional: re-skin the sub-pages to luxury shell so the entire experience feels consistent.
-3. Long term: split monolithic `server.py` into routers — it's accumulating tech debt.
+1. Ask user for Twilio creds to flip WhatsApp from mock → live.
+2. Ask user for Razorpay test keys (or Stripe sandbox) to enable credit top-up & in-app purchases.
+3. Once user provides color/theme preferences, restyle global tokens — design system is centralized in `/app/frontend/src/styles/luxury.css`.
+
+## Future / Backlog (P3+)
+- Razorpay credit top-up flow
+- Couple-portal write access (currently read-only)
+- AWS S3 + CloudFront / Cloudinary / Mux media pipeline
+- Lighthouse / PWA optimization pass
+- Split `server.py` (~11.8k LOC) into routers (auth, super_admin, credits, weddings, ai_story, payment)
