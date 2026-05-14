@@ -4,7 +4,7 @@ import React from 'react';
  * WatermarkOverlay — diagonal "MAHARANI" mark for FREE-plan invitations.
  * Non-blocking; pointer-events: none.
  */
-const WatermarkOverlay = ({ text = 'Maharani.studio' }) => (
+const WatermarkOverlay = ({ text = 'MAJA Creations' }) => (
   <div
     aria-hidden="true"
     data-testid="watermark-overlay"

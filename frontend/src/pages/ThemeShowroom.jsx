@@ -279,7 +279,7 @@ const ThemeDetail = ({ themeId, navigate }) => {
         <footer className="px-6 md:px-16 py-12 text-center border-t" style={{ borderColor: 'var(--lux-border)' }}>
           <div className="font-script text-3xl text-gold mb-2 italic">{theme.name}</div>
           <div className="text-xs tracking-[0.3em] uppercase" style={{ color: 'rgba(255,248,220,0.55)' }}>
-            A sample · Maharani.studio
+            A sample · MAJA Creations
           </div>
         </footer>
       </div>
@@ -295,7 +295,7 @@ const Header = ({ navigate }) => (
         <Heart className="w-4 h-4" style={{ color: '#16110C' }} strokeWidth={2.4} />
       </div>
       <span className="font-display text-lg" style={{ color: '#FFF8DC' }}>
-        Maharani<span className="text-gold">.</span>studio
+        MAJA<span className="text-gold"> </span>Creations
       </span>
     </button>
     <div className="flex items-center gap-4">

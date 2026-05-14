@@ -73,11 +73,11 @@ const Nav = ({ onLogin }) => (
     data-testid="lux-nav"
   >
     <div className="flex items-center gap-3">
-      <div className="w-9 h-9 rounded-full grid place-items-center" style={{ background: 'radial-gradient(circle at 30% 30%, #E8C766, #8C6A1A)' }}>
-        <Heart className="w-4 h-4" style={{ color: '#16110C' }} strokeWidth={2.4} />
-      </div>
+      <img src="/brand/maja-icon-64.png" alt="MAJA Creations"
+        className="w-9 h-9 rounded-full object-cover"
+        style={{ boxShadow: '0 0 0 1px var(--lux-border-strong), inset 0 0 0 1px rgba(232,199,102,0.18)' }} />
       <span className="font-display text-[1.35rem] tracking-wide" style={{ color: '#FFF8DC' }}>
-        Maharani<span className="text-gold">.</span>studio
+        MAJA<span className="text-gold"> </span>Creations
       </span>
     </div>
     <div className="hidden md:flex items-center gap-9 text-[0.82rem] tracking-[0.18em] uppercase" style={{ color: 'rgba(255,248,220,0.7)' }}>
@@ -305,7 +305,7 @@ const Story = () => (
           Indian weddings deserve <span className="text-gold italic font-script">cinema</span>, not templates.
         </motion.h2>
         <motion.p variants={fadeUp} className="text-[1.05rem] leading-[1.85] mb-6" style={{ color: 'rgba(255,248,220,0.7)' }}>
-          We built Maharani for the artist behind the camera — the photographer who has shot 200 weddings
+          We built MAJA Creations for the artist behind the camera — the photographer who has shot 200 weddings
           and is tired of cheap, flashy invitation builders that ruin their brand.
         </motion.p>
         <motion.p variants={fadeUp} className="text-[1.05rem] leading-[1.85]" style={{ color: 'rgba(255,248,220,0.7)' }}>
@@ -327,7 +327,7 @@ const Story = () => (
         </div>
         <div className="lux-eyebrow mb-4">Customer Verdict</div>
         <p className="font-heading text-2xl md:text-[1.85rem] leading-[1.35] italic mb-6" style={{ color: '#FFF8DC' }}>
-          “We doubled our wedding package price the month we moved to Maharani.
+          “We doubled our wedding package price the month we moved to MAJA Creations.
           Couples opened the invite and cried before the wedding even happened.”
         </p>
         <div className="lux-hairline mb-4" />
@@ -421,13 +421,13 @@ const Footer = ({ onSuperAdmin }) => (
   <footer className="relative z-10 px-6 md:px-16 py-12 border-t" style={{ borderColor: 'var(--lux-border)' }}>
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 text-sm">
       <div className="flex items-center gap-3">
-        <div className="w-7 h-7 rounded-full grid place-items-center" style={{ background: 'radial-gradient(circle at 30% 30%, #E8C766, #8C6A1A)' }}>
-          <Heart className="w-3 h-3" style={{ color: '#16110C' }} strokeWidth={2.4} />
-        </div>
-        <span className="font-display text-lg" style={{ color: '#FFF8DC' }}>Maharani<span className="text-gold">.</span>studio</span>
+        <img src="/brand/maja-icon-64.png" alt="MAJA Creations"
+          className="w-7 h-7 rounded-full object-cover"
+          style={{ boxShadow: '0 0 0 1px var(--lux-border-strong)' }} />
+        <span className="font-display text-lg" style={{ color: '#FFF8DC' }}>MAJA<span className="text-gold"> </span>Creations</span>
       </div>
       <div className="flex flex-wrap items-center gap-6" style={{ color: 'rgba(255,248,220,0.55)' }}>
-        <span>© {new Date().getFullYear()} Maharani Studio · Made in India</span>
+        <span>© {new Date().getFullYear()} MAJA Creations · Made in India</span>
         <a href="#features" className="hover:text-[var(--lux-gold)] transition-colors">Features</a>
         <a href="#pricing" className="hover:text-[var(--lux-gold)] transition-colors">Plans</a>
         <button onClick={onSuperAdmin} className="hover:text-[var(--lux-gold)] transition-colors text-left" data-testid="footer-super-admin-link">

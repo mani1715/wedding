@@ -134,7 +134,7 @@ const LiveGalleryManagement = () => {
             <KeyRound className="w-5 h-5 text-gold" /> Desktop uploader
           </h3>
           <p className="text-sm mb-5" style={{ color: 'rgba(255,248,220,0.6)' }}>
-            Generate an upload token, paste it into the Maharani Uploader desktop app, point it at your camera-tethered folder, and photos sync to the live wall in real time. Tokens expire after 72 hours.
+            Generate an upload token, paste it into the MAJA Uploader desktop app, point it at your camera-tethered folder, and photos sync to the live wall in real time. Tokens expire after 72 hours.
           </p>
           {token ? (
             <div className="space-y-3">

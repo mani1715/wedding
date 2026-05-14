@@ -1,25 +1,25 @@
 #!/usr/bin/env python3
 """
-Maharani Studio — Desktop Live Uploader
+MAJA Creations — Desktop Live Uploader
 ========================================
 Watches a local folder for new image files and uploads them to the
-Maharani Live Photo Wall API in real time.
+MAJA Live Photo Wall API in real time.
 
 Setup:
   1. pip install watchdog requests
   2. Get your upload token from the photographer dashboard:
        /admin/profile/<weddingId>/live-gallery
   3. Run:
-       python uploader.py \
-           --url    https://api.maharani.studio/api/live-gallery/desktop-upload \
+       python maja_uploader.py \
+           --url    https://api.maja-creations.com/api/live-gallery/desktop-upload \
            --token  <YOUR_TOKEN> \
            --folder /Users/you/CameraTether/Wedding-123
 
 Features:
   - Watches a folder recursively
   - Compresses & uploads new JPG/PNG files
-  - Retry queue for failed uploads (saved to .uploader_queue.json)
-  - Skips duplicates (tracked in .uploader_seen.json)
+  - Retry queue for failed uploads (saved to ~/.maja_uploader/)
+  - Skips duplicates (tracked in seen-file index)
   - Optional caption template per file
 """
 import argparse
@@ -40,7 +40,7 @@ except ImportError:
 
 
 SUPPORTED_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".heic"}
-STATE_DIR = Path.home() / ".maharani_uploader"
+STATE_DIR = Path.home() / ".maja_uploader"
 STATE_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -89,7 +89,7 @@ class UploadQueue:
 def upload_one(url, token, file_path, caption=None, event_type=None, retries=3):
     """Upload a single file. Returns True on success."""
     if not Path(file_path).exists():
-        return True  # treat missing as done
+        return True
     for attempt in range(retries):
         try:
             with open(file_path, "rb") as f:
@@ -103,14 +103,14 @@ def upload_one(url, token, file_path, caption=None, event_type=None, retries=3):
                 resp = requests.post(url, headers=headers, files=files, data=data, timeout=60)
                 if resp.status_code == 200:
                     j = resp.json()
-                    print(f"  ✅ Uploaded {os.path.basename(file_path)} → {j.get('id','?')}")
+                    print(f"  Uploaded {os.path.basename(file_path)} -> {j.get('id','?')}")
                     return True
-                print(f"  ⚠️ Upload failed ({resp.status_code}): {resp.text[:120]}")
+                print(f"  Upload failed ({resp.status_code}): {resp.text[:120]}")
                 if resp.status_code == 401:
-                    print("  ❌ Token invalid or expired. Stopping.")
+                    print("  Token invalid or expired. Stopping.")
                     sys.exit(1)
         except Exception as e:
-            print(f"  ⚠️ Attempt {attempt+1} error: {e}")
+            print(f"  Attempt {attempt+1} error: {e}")
         time.sleep(2 ** attempt)
     return False
 
@@ -125,10 +125,9 @@ class Handler(FileSystemEventHandler):
             return
         if p.suffix.lower() not in SUPPORTED_EXTS:
             return
-        # Wait a tick for camera to finish writing
         time.sleep(0.5)
         if self.queue.enqueue(str(p.resolve())):
-            print(f"📷 Queued: {p.name}")
+            print(f"Queued: {p.name}")
 
     def on_created(self, event): self._maybe_enqueue(event.src_path)
     def on_moved(self, event): self._maybe_enqueue(event.dest_path)
@@ -158,11 +157,11 @@ def main():
         sys.exit(1)
 
     queue = UploadQueue(args.name)
-    print(f"📂 Watching: {folder}")
-    print(f"🔗 Upload URL: {args.url}")
-    print(f"🎫 Token: {args.token[:8]}…")
+    print(f"Watching: {folder}")
+    print(f"Upload URL: {args.url}")
+    print(f"Token: {args.token[:8]}...")
     if args.event:
-        print(f"🏷️  Event tag: {args.event}")
+        print(f"Event tag: {args.event}")
 
     scan_existing(folder, queue)
 
@@ -177,7 +176,7 @@ def main():
                 if upload_one(args.url, args.token, f, args.caption, args.event):
                     queue.mark_done(f)
                 else:
-                    print(f"  ↺ Will retry: {f}")
+                    print(f"  Will retry: {f}")
                     time.sleep(5)
             else:
                 time.sleep(2)

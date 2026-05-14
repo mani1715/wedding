@@ -55,11 +55,12 @@ const LuxuryShell = ({
             </button>
           )}
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
-            <div className="w-9 h-9 rounded-full grid place-items-center shrink-0" style={{ background: 'radial-gradient(circle at 30% 30%, #E8C766, #8C6A1A)' }}>
-              <Heart className="w-4 h-4" style={{ color: '#16110C' }} strokeWidth={2.4} />
-            </div>
+            <img src="/brand/maja-icon-64.png" alt="MAJA Creations"
+              className="w-9 h-9 rounded-full shrink-0 object-cover"
+              style={{ boxShadow: '0 0 0 1px var(--lux-border-strong), inset 0 0 0 1px rgba(232,199,102,0.18)' }}
+              data-testid="luxe-shell-logo" />
             <span className="font-display text-[1.2rem] tracking-wide hidden md:inline" style={{ color: '#FFF8DC' }}>
-              Maharani<span className="text-gold">.</span>studio
+              MAJA<span className="text-gold"> </span>Creations
             </span>
           </div>
           {title && (

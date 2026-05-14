@@ -9789,7 +9789,7 @@ async def get_public_referral_code(profile_id: str):
             referral_code = f"{referral_code}{random.randint(10, 99)}"
         
         # Get profile to find admin_id
-        profile = await db.profiles.find_one({"profile_id": profile_id})
+        profile = await db.profiles.find_one({"id": profile_id})
         if not profile:
             raise ErrorResponse.not_found("Profile not found")
         
@@ -11735,7 +11735,7 @@ async def ai_generate_story(req: AIStoryRequest, admin_id: str = Depends(get_cur
             api_key=api_key,
             session_id=session_id,
             system_message=(
-                "You are Maharani, a refined Indian wedding copywriter. "
+                "You are MAJA, a refined Indian wedding copywriter. "
                 "You write cinematic, emotional, restrained prose. "
                 "You never write cheesy, generic, or template-style copy."
             ),

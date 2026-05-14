@@ -1,4 +1,4 @@
-# Maharani Studio — Desktop Live Uploader
+# MAJA Creations — Desktop Live Uploader
 
 Lightweight Python tool that watches a folder on your laptop and uploads new photos to the wedding's Live Photo Wall in real time.
 
@@ -14,7 +14,7 @@ pip install watchdog requests
 2. Run:
 
 ```bash
-python maharani_uploader.py \
+python maja_uploader.py \
     --url    https://your-backend.com/api/live-gallery/desktop-upload \
     --token  <token-from-dashboard> \
     --folder /Users/you/CameraTether/Riya-Aarav \
@@ -38,6 +38,6 @@ python maharani_uploader.py \
 ## Reliability
 
 - Retries failed uploads with exponential back-off
-- Saves seen files to `~/.maharani_uploader/` so restarts skip duplicates
+- Saves seen files to `~/.maja_uploader/` so restarts skip duplicates
 - Queues uploads while network is down — retries when back online
 - Supports JPG, JPEG, PNG, WEBP, HEIC

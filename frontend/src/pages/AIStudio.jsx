@@ -56,7 +56,7 @@ const AIStudio = () => {
         </button>
 
         <motion.div variants={fadeUp} initial="hidden" animate="visible" className="mb-8">
-          <span className="lux-eyebrow block mb-3">◆ Claude Sonnet 4.5 + Maharani</span>
+          <span className="lux-eyebrow block mb-3">◆ Claude Sonnet 4.5 + MAJA</span>
           <h1 className="font-display text-[2.2rem] md:text-[3.6rem] leading-tight" style={{ color: '#FFF8DC' }}>
             AI <span className="font-script italic text-gold">Studio</span>
           </h1>

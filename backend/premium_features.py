@@ -1,5 +1,5 @@
 """
-Maharani.studio — PREMIUM FEATURES MODULE
+Maharani.studio — PREMIUM FEATURES MODULE (rebranded to MAJA Creations)
 ==========================================
 Implements priority Phase 38 features:
 - Live Photo Wall (real-time gallery, desktop uploader API, guest upload, QR)
@@ -262,7 +262,7 @@ def build_premium_router(db, get_current_admin, require_admin, ai_chat_factory):
             "modern": "minimal, dignified, contemporary — short sentences",
         }
         system = (
-            "You are Maharani — an elite Indian wedding copywriter. "
+            "You are MAJA — an elite Indian wedding copywriter. "
             "You write the couple's love-journey story in cinematic prose. "
             "Never cheesy, never generic, never AI-tells. Output ONLY the prose."
         )
@@ -760,7 +760,7 @@ def build_premium_router(db, get_current_admin, require_admin, ai_chat_factory):
             phone = rec["phone"].strip()
             if not phone.startswith("+"):
                 phone = "+91" + phone.lstrip("0")
-            body = f"Dear {rec['name']},\n\n{rem_text}\n\n— Maharani.studio"
+            body = f"Dear {rec['name']},\n\n{rem_text}\n\n— MAJA Creations"
             if client:
                 try:
                     msg = client.messages.create(from_=from_num,
@@ -1102,5 +1102,31 @@ def build_premium_router(db, get_current_admin, require_admin, ai_chat_factory):
             },
             "generated_at": _now_iso(),
         }
+
+    # ========================================================================
+    # PUBLIC REFERRAL — slug-based (for public invitation viral CTA)
+    # ========================================================================
+    @router.get("/public/referral-code-by-slug/{slug}")
+    async def referral_code_by_slug(slug: str):
+        profile = await _get_profile_by_id_or_slug(db, slug)
+        # Find or create referral code
+        existing = await db.referrals.find_one({"referrer_profile_id": profile["id"]}, {"_id": 0})
+        if existing and existing.get("referral_code"):
+            return {"referral_code": existing["referral_code"], "profile_id": profile["id"]}
+        # Lazy-create
+        import random
+        import string
+        code = (profile["id"][:5] + ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))).upper()
+        await db.referrals.insert_one({
+            "referral_id": "ref_" + uuid.uuid4().hex[:16],
+            "referrer_profile_id": profile["id"],
+            "referrer_admin_id": profile.get("admin_id", "unknown"),
+            "referred_profile_id": None,
+            "referral_code": code,
+            "status": "pending",
+            "reward_credits": 0,
+            "created_at": _now_iso(),
+        })
+        return {"referral_code": code, "profile_id": profile["id"]}
 
     return router

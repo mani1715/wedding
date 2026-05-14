@@ -12,6 +12,7 @@ import ScrollSection from '@/components/luxury/ScrollSection';
 import DigitalShagunSection from '@/components/luxury/DigitalShagunSection';
 import TravelLinksSection from '@/components/luxury/TravelLinksSection';
 import LivePhotoWallTeaser from '@/components/luxury/LivePhotoWallTeaser';
+import MajaReferralCTA from '@/components/luxury/MajaReferralCTA';
 import { getThemeById } from '@/themes/masterThemes';
 import '@/styles/luxury.css';
 
@@ -233,11 +234,14 @@ const LuxuryPublicInvitation = () => {
         <TravelLinksSection slug={slug} />
         <DigitalShagunSection slug={slug} couple={`${bride} & ${groom}`} />
 
+        {/* Viral photographer-referral CTA */}
+        <MajaReferralCTA slug={slug} />
+
         {/* Footer */}
         <footer className="px-6 md:px-16 py-14 text-center border-t" style={{ borderColor: 'var(--lux-border)' }}>
           <div className="font-script text-3xl text-gold mb-2 italic">{bride} & {groom}</div>
           <div className="text-xs tracking-[0.3em] uppercase" style={{ color: 'rgba(255,248,220,0.55)' }}>
-            Crafted with reverence · Maharani.studio
+            Crafted with reverence · MAJA Creations
           </div>
         </footer>
 

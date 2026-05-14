@@ -1,7 +1,9 @@
-# Maharani.studio — Premium AI-Powered Indian Wedding Platform
+# Maja Creations — Premium AI-Powered Indian Wedding Platform
 
 ## Original Problem Statement
 Build the premium AI-powered Indian wedding photographer SaaS from https://github.com/mani1715/wedding. Add the 8 priority feature groups: AI features, Live Photo Wall, Smart RSVP, WhatsApp, Analytics, Viral Growth, Digital Heritage, Advanced Experience. Apple + Netflix + Indian-royal-wedding feel. Designs/colors locked to be styled by the user later.
+
+> **Brand rename 2026-05-14:** Maharani.studio → **MAJA Creations**. New MJ-monogram logo generated via Gemini Nano Banana (Mughal-arch M with calligraphic J descender) and applied to nav, dashboard, public invitation, favicon, manifest, WhatsApp signatures.
 
 ## Architecture
 - **Backend**: FastAPI (Python 3.11). Core monolith `server.py` (~11.8 kLOC, untouched core) + **new Phase 38 router `premium_features.py`** (~960 LOC) mounted via `build_premium_router()`.
@@ -33,6 +35,13 @@ Build the premium AI-powered Indian wedding photographer SaaS from https://githu
 - Feature flags (RSVP, wishes, countdown, music, gallery, AI story, digital shagun, translations)
 - Couple read-only portal
 - Watermark overlay for FREE plan
+
+### 2026-05-14 — Sprint 7 (Brand rename + Viral CTA)
+
+- **Global rename Maharani.studio → MAJA Creations**: nav (LuxuryShell, LandingPage, LuxuryDashboard, ThemeShowroom), WatermarkOverlay, public invitation footer, AI Studio header, manifest.json, index.html `<title>`/description, backend AI system prompts, WhatsApp message signatures, desktop uploader file renamed `maja_uploader.py` (state dir `~/.maja_uploader/`).
+- **Logo generated via Gemini Nano Banana** (`generate_logo.py`): MJ monogram with Mughal-arch M and calligraphic J descender, gold-on-ink + light variants + standalone icon. Multiple favicons (16/32/64/128/192/512) + ICO. Mounted at `/brand/maja-*.png`.
+- **MajaReferralCTA component** (`/app/frontend/src/components/luxury/MajaReferralCTA.jsx`) — luxe "Crafted on MAJA · Sign up with code XXXXX · 50 FREE CREDITS · See how this was made" CTA inside public invitation. Uses new slug-based public endpoint `GET /api/public/referral-code-by-slug/{slug}` (added to premium_features.py) which lazy-creates referral code on first view. Fixed a pre-existing bug in `/api/public/referral-code/{profile_id}` (was querying by wrong `profile_id` field — now uses `id`).
+- All regressions pass: login, /auth/me, profiles list, AI story V2, live gallery, referral code generation.
 
 ### 2026-05-14 — Sprint 6 (Phase 38 — Premium AI / Live Wall / Communication / Monetization)
 
